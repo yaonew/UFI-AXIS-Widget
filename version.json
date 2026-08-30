@@ -1,10 +1,10 @@
 {
-  "versionName": "0.2.1",
-  "versionCode": 2,
-  "tagName": "v0.2.1",
-  "apkUrl": "https://github.com/Asunano/UFITOOLS-Widget/releases/download/v0.2.1/UFITOOLS-Widget-v0.2.1.apk",
-  "apkSize": 2614102,
-  "apkSha256": "e27254ee255db42c8e99e23bfc280e78dd6ed110f402541444af62e490ae60d3",
-  "publishedAt": "2026-07-05T19:07:21Z",
-  "changelog": "修复进入通知中心时触发异常权限申请的问题|修复部分界面元素渲染异常与状态显示错误|修复部分场景下可能导致数据读取或解析异常的问题|修复特定条件下可能触发重复通知的问题|修复多处进程间并发访问导致的竞态问题| |全新的F50管理工具UFI-AXIS提上日程，包含官方后台全功能以及轻nas功能等，敬请期待"
+  "versionName": "0.3.0",
+  "versionCode": 3,
+  "tagName": "v0.3.0",
+  "apkUrl": "https://github.com/Asunano/UFI-AXIS-Widget/releases/download/v0.3.0/UFI-AXIS-Widget-v0.3.0.apk",
+  "apkSize": 2702246,
+  "apkSha256": "dc5b33e2d6e5d437029c01d7961f35dd6448cc9612de6b3ac0a9a2c8266a3b24",
+  "publishedAt": "2026-08-30T16:15:56Z",
+  "changelog": "0.3.0：新增三种小组件尺寸，包名变更为 com.ufi_axis_widget|新增 2×2 / 4×1 / 1×1 三种小组件尺寸，连同 4×2 共四种可选|版面随数据源自动切换：goform 直连下隐藏无数据项，改显示运营商 / 频段 / SINR / RSRP|小组件设置支持按尺寸与桌面实例独立配置，首次改动自动开启独立外观|1×1 仅开放中心大字选择，右上角信号 / 制式 / 电量固定显示|「隐藏小组件名称」改为按尺寸独立生效，不再连带移除其他尺寸的组件|新增设备档案切换、状态磁贴、流量预测与指定 Wi-Fi 守卫|应用改为单进程，移除 :crash_handler，修复跨进程配置互相覆盖|修复 CI 生成 version.json 失败与更新日志换行不换条的问题|重要：包名由 com.ufi_toolswidget 改为 com.ufi_axis_widget，与旧版并存安装，配置与历史不迁移，小组件需重新添加"
 }
