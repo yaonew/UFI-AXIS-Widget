@@ -317,20 +317,6 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
-        <!--
-            快捷设置磁贴：与数据源无关，只读 wifi_data 这份公共缓存。
-            必须声明 BIND_QUICK_SETTINGS_TILE，否则系统不会把它列进「编辑磁贴」面板。
-        -->
-        <service
-            android:name=".service.StatusTileService"
-            android:exported="true"
-            android:icon="@drawable/ic_router"
-            android:label="设备状态"
-            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
-            <intent-filter>
-                <action android:name="android.service.quicksettings.action.QS_TILE" />
-            </intent-filter>
-        </service>
 
 
         <!-- 开机自动恢复保活服务 -->

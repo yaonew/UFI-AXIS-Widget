@@ -4,7 +4,7 @@ import android.content.Context
 import com.ufi_axis_widget.worker.WifiWorker
 
 /**
- * 一行状态摘要，供快捷设置磁贴与常驻通知共用。
+ * 一行状态摘要，供常驻通知使用。
  *
  * 与数据源无关：只读 `wifi_data` 这份公共缓存（由 [SPUtil.saveData] 写入），
  * 换数据源不需要改这里。
@@ -12,7 +12,7 @@ import com.ufi_axis_widget.worker.WifiWorker
  * 顺序上先报「为什么没数据」再报数据本身 —— 用户看到「已暂停刷新」比看到
  * 一份不知道多旧的数字有用得多。
  *
- * 显示哪些项由用户在「后台保活 → 实时数据显示项」里勾选，磁贴与通知共用同一份配置。
+ * 显示哪些项由用户在「后台保活 → 实时数据显示项」里勾选。
  */
 object StatusSummary {
 
@@ -59,22 +59,6 @@ object StatusSummary {
             .map { fieldValue(context, it.key) }
             .filter { it.isNotEmpty() }
         return if (parts.isEmpty()) "暂无数据" else parts.joinToString(" · ")
-    }
-
-    /**
-     * 磁贴主标题：第一个有值的显示项。
-     *
-     * 数据必须落在**标题**上：部分 ROM（MIUI/HyperOS 等）不渲染第三方磁贴的副标题，
-     * 只把数据写进 subtitle 的话用户看到的就是一个光秃秃的开关。
-     * 暂停 / 离线时改报状态 —— 这时候「为什么没数据」比数字重要。
-     */
-    fun tileLabel(context: Context): String {
-        if (!isNormal(context)) return line(context)
-        val first = selectedFields(context)
-            .asSequence()
-            .map { fieldValue(context, it.key) }
-            .firstOrNull { it.isNotEmpty() }
-        return first ?: deviceTitle(context)
     }
 
     /**

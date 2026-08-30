@@ -309,11 +309,7 @@ class BackgroundKeepAliveActivity : AppCompatActivity() {
         if (SPUtil.getNotifShowLiveData(this)) "通知栏显示信号/电量/今日流量，自定义文案失效"
         else "常驻通知只显示自定义文案"
 
-    /**
-     * 实时数据显示项：通知与快捷设置磁贴共用同一份勾选。
-     *
-     * 不做成两套配置：两处显示的是同一份缓存，分开配只会让用户在两个页面之间来回找。
-     */
+    /** 实时数据显示项：常驻通知展示哪几项数据 */
     private fun initStatusFieldsItem() {
         CommonSettingsItemHelper.setupSettingItem(
             itemView = findViewById(R.id.item_status_fields),

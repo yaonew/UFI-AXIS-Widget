@@ -154,7 +154,7 @@ object NotificationMonitor {
         }
         val now = SystemClock.elapsedRealtime()
         // 采集很轻（4 个局域网 GET + 一次 SP 写），渲染才是重活：重建 RemoteViews
-        // 与 Bitmap、跨进程 IPC、磁贴更新。而 update_time 每轮都变且进数据哈希，
+        // 与 Bitmap、跨进程 IPC。而 update_time 每轮都变且进数据哈希，
         // renderAllWidgets 自己的去重完全挡不住，只能在这里按时间节流。
         val allowRender = now - lastRenderAt >= MIN_RENDER_INTERVAL_MS
         try {

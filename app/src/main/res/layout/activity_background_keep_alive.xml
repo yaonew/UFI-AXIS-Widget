@@ -98,7 +98,7 @@
                 layout="@layout/layout_common_switch_item"
                 android:id="@+id/item_notif_live_data" />
 
-            <!-- 实时数据显示项（通知与快捷设置磁贴共用） -->
+            <!-- 实时数据显示项（常驻通知使用） -->
             <include
                 layout="@layout/layout_common_setting_item"
                 android:id="@+id/item_status_fields" />

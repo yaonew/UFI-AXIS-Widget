@@ -1,6 +1,7 @@
 package com.ufi_axis_widget.worker
 
 import android.content.Context
+import android.os.SystemClock
 import android.util.Log
 import androidx.work.BackoffPolicy
 import androidx.work.CoroutineWorker
@@ -26,6 +27,7 @@ import kotlinx.coroutines.withContext
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * 一轮完整采集的结果。
@@ -87,6 +89,41 @@ class WifiWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, 
          * ARP 重解析、信道拥塞都可能让单次握手超过 1s，故留出余量避免误判。
          */
         private const val PING_TIMEOUT_MS = 2500
+
+        /**
+         * 同一进程内两次采集的最小间隔。
+         *
+         * 四个入队点（周期任务 / AlarmReceiver / RefreshTrigger / 手动刷新）互不知情，
+         * 安装替换、开机、连上 Wi-Fi 这些时刻会同时开火 —— 实测 MY_PACKAGE_REPLACED
+         * 那一瞬 doWork 在 1.4 秒内跑了 3 次，等于 3 份 ping + 3 份 HTTP + 3 轮通知判定。
+         * 合法的最短调度间隔是 AlarmReceiver 的 5 分钟，取 5 秒不会误杀任何一路。
+         */
+        private const val MIN_RUN_INTERVAL_MS = 5_000L
+
+        /**
+         * 上次进入 doWork 的时刻（[SystemClock.elapsedRealtime] 单调时钟，不受改系统时间影响）。
+         *
+         * 记在**入口**而不是完成时：重复调用是在十几毫秒内扎堆的，
+         * 按完成时间记根本来不及拦住后面几路。
+         */
+        private val lastRunAt = AtomicLong(0L)
+
+        /**
+         * 抢占本轮执行权，[MIN_RUN_INTERVAL_MS] 内只放行一次。
+         *
+         * 用 CAS 循环而不是「先读再写」：多路入队是真并发，
+         * 非原子的判断会让两路同时通过检查，去重就白做了。
+         * 进程重启后计时归零属于预期 —— 新进程本身就意味着一次全新的时机。
+         */
+        private fun tryAcquireRun(): Boolean {
+            val now = SystemClock.elapsedRealtime()
+            while (true) {
+                val last = lastRunAt.get()
+                if (last != 0L && now - last < MIN_RUN_INTERVAL_MS) return false
+                if (lastRunAt.compareAndSet(last, now)) return true
+            }
+        }
+
 
         /** API 请求连续失败多少次后才标记 stopped（ping 通过的前提下） */
         const val API_MAX_FAILURES = 3
@@ -171,7 +208,7 @@ class WifiWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, 
          *
          * 相比轻量链路只多一个局域网 GET（信号维度）和一次 SP 批量写，
          * 唤醒次数不变 —— 耗电量级不变。真正的重活是 [render]（重建 RemoteViews
-         * 与 Bitmap、跨进程 IPC、磁贴更新），高频调用方应自行节流后传 false。
+         * 与 Bitmap、跨进程 IPC），高频调用方应自行节流后传 false。
          *
          * 调用方负责守卫判断与失败计数（见 [reportProbeFailure]）。
          *
@@ -257,6 +294,13 @@ class WifiWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, 
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val ctx = applicationContext
+
+        // ====== 步骤 -1：重复入队去重 ======
+        // 返回 success 而不是 retry：本轮是多余的副本，不需要 WorkManager 再排一次。
+        if (!tryAcquireRun()) {
+            DebugLogger.d(TAG, "doWork: 距上次采集不足 ${MIN_RUN_INTERVAL_MS}ms，跳过重复入队")
+            return@withContext Result.success()
+        }
 
         // ====== 步骤 0：指定 Wi-Fi 守卫 ======
         // 不在白名单 Wi-Fi 上时直接放弃本轮：不请求、不累计失败计数、不发离线通知。

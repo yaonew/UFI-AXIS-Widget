@@ -233,12 +233,18 @@ object ThemeUtil {
         applySecondaryTextColors(root, textPrimary, textSecondary, accent, iconTint, cardBg, btnBg)
 
         // 统一处理检查更新按钮（公共组件库风格：btnBg + 白色文字）
-        activity.findViewById<MaterialButton>(R.id.btn_check_update)?.let { btn ->
-            btn.backgroundTintList = ColorStateList.valueOf(btnBg)
-            btn.setTextColor(0xFFFFFFFF.toInt())
-            btn.strokeWidth = 0
-            btn.strokeColor = ColorStateList.valueOf(android.graphics.Color.TRANSPARENT)
+        //
+        // btn_check_update 是 <include layout="@layout/layout_common_action_button">，
+        // 根节点是 FrameLayout 而不是 MaterialButton —— 直接 findViewById<MaterialButton>
+        // 会抛 ClassCastException，把这个函数后面的逻辑全部打断。
+        // 按公共组件的约定改成「取容器 → 取 common_btn_text」，和 btn_setup_confirm 一致。
+        activity.findViewById<View>(R.id.btn_check_update)?.let { v ->
+            v.findViewById<View>(R.id.common_btn_text)?.let { text ->
+                text.background = makeCardBg(btnBg, 12f)
+                if (text is TextView) text.setTextColor(0xFFFFFFFF.toInt())
+            }
         }
+
 
     }
 

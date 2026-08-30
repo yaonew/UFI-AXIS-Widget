@@ -460,7 +460,26 @@ object DebugLogger {
             sb.appendLine()
         }
 
-        // 6. 异常日志（最近 20 条）
+        // 6. 通用 + 生命周期日志（最近 50 条）
+        //
+        // 这两类此前完全没有出口：诊断页的分类按钮只有 系统/API/UI/异常/全量，
+        // 全量报告又只导 API/UI/EXC。结果是小组件、守卫这些走
+        // DebugLogger.d/w（GENERAL 分类）的模块，日志写了却任何地方都看不到，
+        // 排查时会误判成「代码没执行」。
+        val generalLogs = getByCategory(Category.GENERAL, 50)
+        if (generalLogs.isNotEmpty()) {
+            sb.appendLine("========== 最近通用日志 (50条) ==========")
+            generalLogs.forEach { sb.appendLine(it.formatted()) }
+            sb.appendLine()
+        }
+        val lifeLogs = getByCategory(Category.LIFECYCLE, 20)
+        if (lifeLogs.isNotEmpty()) {
+            sb.appendLine("========== 最近生命周期日志 (20条) ==========")
+            lifeLogs.forEach { sb.appendLine(it.formatted()) }
+            sb.appendLine()
+        }
+
+        // 7. 异常日志（最近 20 条）
         val excLogs = getByCategory(Category.EXCEPTION, 20)
         if (excLogs.isNotEmpty()) {
             sb.appendLine("========== 最近异常日志 (20条) ==========")
@@ -468,7 +487,7 @@ object DebugLogger {
             sb.appendLine()
         }
 
-        // 7. API 状态快照
+        // 8. API 状态快照
         sb.appendLine(dumpApiState(context))
 
         return sb.toString()

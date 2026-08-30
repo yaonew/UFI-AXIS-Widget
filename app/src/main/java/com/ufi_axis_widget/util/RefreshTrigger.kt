@@ -20,9 +20,10 @@ import com.ufi_axis_widget.widget.BaseWifiWidget
  * 小组件上还挂着一份旧数据加一句「已暂停刷新」。本类负责在这些**状态翻转的瞬间**
  * 补触发一次采集，让「暂停 + 恢复即刷」在体感上等价于「降频」。
  *
- * 监听三类系统事件，全部与数据源无关，对任何数据源同等生效：
+ * 监听四类系统事件，全部与数据源无关，对任何数据源同等生效：
  * - 默认网络能力变化（连上/切换 Wi-Fi）
  * - 屏幕点亮 / 熄灭
+ * - 用户解锁
  * - 系统省电模式开关
  *
  * ## 已知降级：进程被杀后收不到事件
@@ -112,7 +113,17 @@ object RefreshTrigger {
             override fun onReceive(ctx: Context, intent: Intent) {
                 when (intent.action) {
                     Intent.ACTION_SCREEN_ON -> tryTrigger(appCtx, "屏幕点亮")
-                    Intent.ACTION_SCREEN_OFF -> renderOnly(appCtx, "屏幕关闭")
+                    // 息屏是一个状态断点：息屏期间「息屏暂停」会拦掉所有采集，
+                    // 所以熄屏前那次触发的防抖计时不该跨过息屏继续生效 ——
+                    // 否则「亮屏 → 10 秒后息屏 → 再亮屏」会因为落在 30 秒窗口内被跳过，
+                    // 用户解锁后看到的仍是熄屏前的旧数据，要等下一个周期才会动。
+                    Intent.ACTION_SCREEN_OFF -> {
+                        lastTriggerAt = 0L
+                        renderOnly(appCtx, "屏幕关闭")
+                    }
+                    // 解锁单独再触发一次：亮屏那一刻可能还停在锁屏，Wi-Fi 也可能尚未恢复关联，
+                    // 此时采集会失败并白占防抖窗口。解锁才是用户真正开始看数据的时刻。
+                    Intent.ACTION_USER_PRESENT -> tryTrigger(appCtx, "解锁")
                     ACTION_POWER_SAVE_MODE_CHANGED -> {
                         // 开启省电时翻转为 blocked（只需重渲染），关闭时翻转为 allowed（需要补刷）
                         if (WifiGuard.isPowerSaveMode(appCtx)) renderOnly(appCtx, "省电模式开启")
@@ -121,10 +132,11 @@ object RefreshTrigger {
                 }
             }
         }
-        // SCREEN_ON / SCREEN_OFF 只能动态注册，清单里声明收不到
+        // SCREEN_ON / SCREEN_OFF / USER_PRESENT 只能动态注册，清单里声明收不到
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_ON)
             addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_USER_PRESENT)
             addAction(ACTION_POWER_SAVE_MODE_CHANGED)
         }
         try {

@@ -17,7 +17,6 @@ import android.view.View
 import android.widget.RemoteViews
 import com.ufi_axis_widget.R
 import com.ufi_axis_widget.service.BackgroundMonitorService
-import com.ufi_axis_widget.service.StatusTileService
 import com.ufi_axis_widget.util.DataSourceType
 import com.ufi_axis_widget.util.DebugLogger
 import com.ufi_axis_widget.util.DeviceProfiles
@@ -193,8 +192,7 @@ abstract class BaseWifiWidget(val layoutId: Int) : AppWidgetProvider() {
                     lastDataHash = pendingHash
                     hasCachedHash = true
                 }
-                // 数据/状态确实变了才通知磁贴，命中去重的路径不必打扰它
-                StatusTileService.requestUpdate(context)
+                // 数据/状态确实变了才刷常驻通知，命中去重的路径不必打扰它
                 BackgroundMonitorService.refreshLiveData(context)
             } catch (e: Exception) {
                 // 渲染失败（Bitmap OOM、RemoteViews 异常等）时不能提交哈希，

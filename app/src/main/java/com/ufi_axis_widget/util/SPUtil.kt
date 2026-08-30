@@ -738,7 +738,7 @@ object SPUtil {
         getSp(ctx).edit().putBoolean("notif_show_live_data", enabled).apply()
 
     /**
-     * 实时状态显示项（常驻通知与快捷设置磁贴共用）。
+     * 实时状态显示项（常驻通知使用）。
      *
      * 空集合表示「全部项」—— 这样新增可选项时老用户自动获得，不需要迁移。
      * 取值键定义在 [StatusSummary.FIELDS]。
