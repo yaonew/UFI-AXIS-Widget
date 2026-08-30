@@ -4,6 +4,15 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- 读取当前 Wi-Fi 状态，用于「只在指定 Wi-Fi 下刷新」 -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <!--
+      Android 10+ 读取当前 Wi-Fi SSID 必须持有精确定位权限（平台强制）。
+      本应用仅用于判断是否连在用户指定的 Wi-Fi 上，不采集、不上传任何位置信息。
+      用户拒绝授权时功能降级为「只判断是否在 Wi-Fi 链路上」，不影响其他功能。
+    -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
     <uses-permission android:name="com.miui.home.permission.ADD_WIDGET_TO_HOME_SCREEN" />
     <uses-permission android:name="com.oppo.launcher.permission.READ_SETTINGS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -19,7 +28,7 @@
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 
     <application
-        android:name=".UfiToolsApplication"
+        android:name=".UfiAxisApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -27,14 +36,14 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.UFITOOLSWidget"
+        android:theme="@style/Theme.UfiAxisWidget"
         android:usesCleartextTraffic="true"
         android:enableOnBackInvokedCallback="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.UFITOOLSWidget">
+            android:theme="@style/Theme.UfiAxisWidget">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -47,90 +56,115 @@
         <activity
             android:name=".SetupActivity"
             android:label="初次配置"
-            android:theme="@style/Theme.UFITOOLSWidget" />
+            android:theme="@style/Theme.UfiAxisWidget" />
 
         <activity
             android:name=".SettingsActivity"
             android:label="设置"
-            android:theme="@style/Theme.UFITOOLSWidget" />
+            android:theme="@style/Theme.UfiAxisWidget" />
 
         <activity
             android:name=".AppSettingsActivity"
             android:label="软件设置"
             android:parentActivityName=".SettingsActivity"
-            android:theme="@style/Theme.UFITOOLSWidget" />
+            android:theme="@style/Theme.UfiAxisWidget" />
 
         <activity
             android:name=".NotificationSettingsActivity"
             android:label="通知管理"
             android:parentActivityName=".SettingsActivity"
-            android:theme="@style/Theme.UFITOOLSWidget" />
+            android:theme="@style/Theme.UfiAxisWidget" />
 
         <activity
             android:name=".AlertHistoryActivity"
             android:label="警报历史"
             android:parentActivityName=".MainActivity"
-            android:theme="@style/Theme.UFITOOLSWidget" />
+            android:theme="@style/Theme.UfiAxisWidget" />
 
         <activity
             android:name=".BackgroundKeepAliveActivity"
             android:label="后台保活配置"
             android:parentActivityName=".NotificationSettingsActivity"
-            android:theme="@style/Theme.UFITOOLSWidget" />
+            android:theme="@style/Theme.UfiAxisWidget" />
 
         <activity
             android:name=".ConfigModifyActivity"
             android:label="配置修改"
             android:parentActivityName=".SettingsActivity"
-            android:theme="@style/Theme.UFITOOLSWidget" />
+            android:theme="@style/Theme.UfiAxisWidget" />
+
+        <activity
+            android:name=".DeviceProfilesActivity"
+            android:label="设备配置档"
+            android:parentActivityName=".ConfigModifyActivity"
+            android:theme="@style/Theme.UfiAxisWidget" />
+
 
         <activity
             android:name=".WidgetSettingsActivity"
             android:label="小组件设置"
             android:parentActivityName=".SettingsActivity"
-            android:theme="@style/Theme.UFITOOLSWidget" />
+            android:theme="@style/Theme.UfiAxisWidget" />
 
         <activity
             android:name=".WidgetDynamicColorActivity"
             android:label="动态配色"
             android:parentActivityName=".ExperimentalFeaturesActivity"
-            android:theme="@style/Theme.UFITOOLSWidget" />
+            android:theme="@style/Theme.UfiAxisWidget" />
 
         <activity
             android:name=".AboutActivity"
             android:label="关于"
             android:parentActivityName=".SettingsActivity"
-            android:theme="@style/Theme.UFITOOLSWidget" />
+            android:theme="@style/Theme.UfiAxisWidget" />
 
         <activity
             android:name=".ExperimentalFeaturesActivity"
             android:label="实验功能"
             android:parentActivityName=".SettingsActivity"
-            android:theme="@style/Theme.UFITOOLSWidget" />
+            android:theme="@style/Theme.UfiAxisWidget" />
 
 
         <activity
             android:name=".TrafficHistoryActivity"
             android:label="流量记录"
             android:parentActivityName=".SettingsActivity"
-            android:theme="@style/Theme.UFITOOLSWidget" />
+            android:theme="@style/Theme.UfiAxisWidget" />
 
+        <!--
+            调试日志页刻意不再用 android:process=":crash_handler"：
+            它和主进程共用同一份 MODE_PRIVATE 的 SharedPreferences，两个进程各持一份内存副本，
+            独立进程这边提交时会拿旧快照整体重写 XML，可能抹掉主进程（WifiWorker 正在采集）
+            刚写入的配置。崩溃场景本来也不需要进程隔离 —— CrashHandler 是先杀掉崩溃进程、
+            再由 AlarmManager 延迟 500ms 拉起这个页面，那时已经是一个全新的主进程。
+        -->
         <activity
             android:name=".DebugLogActivity"
             android:label="调试日志"
             android:parentActivityName=".AboutActivity"
-            android:process=":crash_handler"
-            android:theme="@style/Theme.UFITOOLSWidget" />
+            android:theme="@style/Theme.UfiAxisWidget" />
 
         <activity
             android:name=".AddWidgetActivity"
             android:excludeFromRecents="true"
-            android:theme="@style/Theme.UFITOOLSWidget.Transparent" />
+            android:theme="@style/Theme.UfiAxisWidget.Transparent" />
+
+        <!-- 单个已放置小组件的配置入口（桌面添加/长按重新配置时启动） -->
+        <activity
+            android:name=".WidgetConfigActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.UfiAxisWidget.Transparent">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
 
         <activity
             android:name=".ImageCropActivity"
             android:label="调整背景图片"
-            android:theme="@style/Theme.UFITOOLSWidget" />
+            android:theme="@style/Theme.UfiAxisWidget" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -154,8 +188,8 @@
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="com.ufi_toolswidget.ACTION_WIDGET_REFRESH" />
             </intent-filter>
+
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_4x2_info" />
@@ -170,65 +204,134 @@
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="com.ufi_toolswidget.ACTION_WIDGET_REFRESH" />
             </intent-filter>
+
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_4x2_nolabel_info" />
         </receiver>
 
-        <!-- 2×1 迷你版暂时禁用 -->
+        <!-- 1×1 迷你版（类名里的 2x1 是历史包袱，见 widget_2x1_info.xml） -->
         <receiver
             android:name=".widget.WifiWidget2x1"
             android:exported="true"
-            android:enabled="false"
-            android:label="UFI 迷你 (2×1)">
+            android:enabled="true"
+            android:label="UFI 迷你 (1×1)">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="com.ufi_toolswidget.ACTION_WIDGET_REFRESH" />
             </intent-filter>
+
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_2x1_info" />
         </receiver>
 
-        <!-- 4×1 条形版暂时禁用 -->
+        <!-- 隐藏名称影子组件：与 1×1 完全相同，仅标签不可见 -->
+        <receiver
+            android:name=".widget.WifiWidget2x1NoLabel"
+            android:exported="true"
+            android:enabled="false"
+            android:label="&#x200B;">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_2x1_nolabel_info" />
+        </receiver>
+
+        <!-- 4×1 条形版 -->
         <receiver
             android:name=".widget.WifiWidget4x1"
             android:exported="true"
-            android:enabled="false"
+            android:enabled="true"
             android:label="UFI 条形 (4×1)">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="com.ufi_toolswidget.ACTION_WIDGET_REFRESH" />
             </intent-filter>
+
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_4x1_info" />
         </receiver>
 
-        <!-- 4×4 详情版暂时禁用 -->
+        <!-- 隐藏名称影子组件：与 4×1 完全相同，仅标签不可见 -->
         <receiver
-            android:name=".widget.WifiWidget4x4"
+            android:name=".widget.WifiWidget4x1NoLabel"
             android:exported="true"
             android:enabled="false"
-            android:label="UFI 详情 (4×4)">
+            android:label="&#x200B;">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="com.ufi_toolswidget.ACTION_WIDGET_REFRESH" />
             </intent-filter>
+
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/widget_4x4_info" />
+                android:resource="@xml/widget_4x1_nolabel_info" />
         </receiver>
+
+        <!-- 2×2 方块版 -->
+        <receiver
+            android:name=".widget.WifiWidget2x2"
+            android:exported="true"
+            android:enabled="true"
+            android:label="UFI 方块 (2×2)">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_2x2_info" />
+        </receiver>
+
+        <!-- 隐藏名称影子组件：与 2×2 完全相同，仅标签不可见 -->
+        <receiver
+            android:name=".widget.WifiWidget2x2NoLabel"
+            android:exported="true"
+            android:enabled="false"
+            android:label="&#x200B;">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_2x2_nolabel_info" />
+        </receiver>
+
+
+
         <!-- 后台保活前台服务 -->
+
+
         <service
             android:name=".service.BackgroundMonitorService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+
+        <!--
+            快捷设置磁贴：与数据源无关，只读 wifi_data 这份公共缓存。
+            必须声明 BIND_QUICK_SETTINGS_TILE，否则系统不会把它列进「编辑磁贴」面板。
+        -->
+        <service
+            android:name=".service.StatusTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_router"
+            android:label="设备状态"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
 
         <!-- 开机自动恢复保活服务 -->
         <receiver
@@ -258,7 +361,7 @@
             android:name=".service.AlarmReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.ufi_toolswidget.ACTION_ALARM_CHECK" />
+                <action android:name="com.ufi_axis_widget.ACTION_ALARM_CHECK" />
             </intent-filter>
         </receiver>
     </application>

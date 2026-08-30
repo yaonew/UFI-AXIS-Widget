@@ -53,7 +53,7 @@
     </FrameLayout>
 
     <!-- 主展示区 -->
-    <com.ufi_toolswidget.util.SimpleCropView
+    <com.ufi_axis_widget.util.SimpleCropView
         android:id="@+id/crop_view"
         android:layout_width="0dp"
         android:layout_height="0dp"

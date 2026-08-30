@@ -1,0 +1,408 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  goform 直连专用 4×2 布局。
+
+  与 widget_4x2 共用全部结构性 id（widget_root / widget_bg_image / widget_bg_stroke /
+  widget_content / widget_error_*  / divider_flow），这样 applyWidgetTheme 与
+  applyStateOverlay 可以完全复用，不必再写一份主题着色代码。
+
+  内容上砍掉 goform 拿不到的维度（今日流量 / 温度 / CPU / 内存 / build 号 / 充电电流），
+  换成 goform 真正有的：月流量主数字 + 运营商与制式 + RSRP/SINR/频段/PCI。
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:elevation="6dp"
+    android:outlineProvider="background"
+    android:background="@drawable/bg_widget_mask_transparent">
+
+    <ImageView
+        android:id="@+id/widget_bg_image"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:src="@drawable/bg_widget_mask" />
+
+    <ImageView
+        android:id="@+id/widget_bg_stroke"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:src="@drawable/bg_widget_stroke" />
+
+    <!-- 正常数据内容区 -->
+    <LinearLayout
+        android:id="@+id/widget_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="8dp">
+
+        <!-- ========= 第一行：型号 + 固件 + 信号 + 制式 + 电量 ========= -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/iv_router"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/ic_router"
+                android:scaleType="fitCenter"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="2dp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tv_model"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="2dp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:text="--"
+                    android:textColor="#777777"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_version"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:text=""
+                    android:textColor="#777777"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/iv_signal_bars"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_signal_0"
+                android:scaleType="fitCenter"
+                android:layout_marginEnd="2dp" />
+
+            <ImageView
+                android:id="@+id/iv_network"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/ic_network_4g"
+                android:scaleType="fitCenter"
+                android:layout_marginEnd="4dp" />
+
+            <TextView
+                android:id="@+id/tv_no_network"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="4dp"
+                android:text="无网络"
+                android:textColor="#777777"
+                android:textSize="8sp"
+                android:visibility="gone" />
+
+            <ImageView
+                android:id="@+id/iv_battery"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_battery_0"
+                android:scaleType="fitCenter" />
+
+            <TextView
+                android:id="@+id/tv_battery"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="2dp"
+                android:text="--"
+                android:textColor="#777777"
+                android:textSize="11sp"
+                android:maxLines="1"
+                android:layout_marginEnd="4dp"
+                android:ellipsize="end" />
+        </LinearLayout>
+
+
+        <!-- ========= 第二行：运营商/制式 + 月流量主数字 ========= -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <!-- 运营商与制式：通用版这里是「今日流量」，goform 没有当日流量维度 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tv_carrier"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:text="--"
+                    android:textColor="#777777"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_net_type"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:maxLines="1"
+                    android:text="--"
+                    android:textColor="#777777"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <FrameLayout
+                android:id="@+id/divider_flow"
+                android:layout_width="1dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="6dp"
+                android:layout_marginEnd="6dp"
+                android:background="#33777777" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tv_flow_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="本月流量"
+                    android:textColor="#777777"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="bottom"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/tv_flow"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="--"
+                        android:textColor="#777777"
+                        android:textSize="36sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_flow_unit"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="2dp"
+                        android:layout_marginBottom="4dp"
+                        android:text="GB"
+                        android:textColor="#777777"
+                        android:textSize="17sp" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- =========
+             第三行：信号详情 RSRP / SINR / 频段 / PCI
+
+             图标与通用版 4x2 第三行同一套写法（12dp ImageView + 2dp 间距），但文本仍带
+             RSRP / SINR / PCI 指标名 —— 这几个指标没有约定俗成的图标，只给图标认不出来。
+             因此字号降到 9sp 并 ellipsize，保证 4 格在 4×2 宽度下都放得下。
+             其中 iv_antenna / iv_chip 沿用通用版的 id，这样主题着色的图标 id 列表不用为
+             它们再加两项。
+
+        ========= -->
+        <LinearLayout
+            android:id="@+id/row_signal_detail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/iv_antenna"
+
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:src="@drawable/ic_antenna"
+                    android:scaleType="fitCenter" />
+
+                <TextView
+                    android:id="@+id/tv_rsrp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="2dp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:text="--"
+                    android:textColor="#777777"
+                    android:textSize="9sp" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/iv_sinr"
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:src="@drawable/ic_heartbeat"
+                    android:scaleType="fitCenter" />
+
+                <TextView
+                    android:id="@+id/tv_sinr"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="2dp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:text="--"
+                    android:textColor="#777777"
+                    android:textSize="9sp" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/iv_band"
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:src="@drawable/ic_blur"
+                    android:scaleType="fitCenter" />
+
+                <TextView
+                    android:id="@+id/tv_band"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="2dp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:text="--"
+                    android:textColor="#777777"
+                    android:textSize="9sp" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/iv_chip"
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:src="@drawable/ic_chip"
+                    android:scaleType="fitCenter" />
+
+                <TextView
+                    android:id="@+id/tv_pci"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="2dp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:text="--"
+                    android:textColor="#777777"
+                    android:textSize="9sp" />
+
+            </LinearLayout>
+        </LinearLayout>
+
+
+        <!-- ========= 第四行：更新时间 ========= -->
+        <TextView
+            android:id="@+id/tv_update_time"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:gravity="center"
+            android:text="..."
+            android:textColor="#777777"
+            android:textSize="10sp" />
+
+    </LinearLayout>
+    <!-- end of widget_content -->
+
+    <!-- ========= 错误覆盖层 ========= -->
+    <LinearLayout
+        android:id="@+id/widget_error_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone"
+        android:clickable="false">
+
+        <ImageView
+            android:id="@+id/widget_error_icon"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:src="@drawable/ic_router_off"
+            android:scaleType="fitCenter" />
+
+        <TextView
+            android:id="@+id/widget_error_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="设备连接失败"
+            android:textColor="#777777"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_error_hint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="点击重试"
+            android:textColor="#999999"
+            android:textSize="12sp" />
+
+    </LinearLayout>
+
+</FrameLayout>

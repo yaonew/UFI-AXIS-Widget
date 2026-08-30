@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.UFITOOLSWidget" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.UfiAxisWidget" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/white</item>
         <item name="colorOnPrimary">@color/black</item>
         <item name="colorPrimaryContainer">@color/page_bg</item>

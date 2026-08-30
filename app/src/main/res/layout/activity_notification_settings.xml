@@ -92,6 +92,11 @@
                 layout="@layout/layout_common_setting_item"
                 android:id="@+id/item_monitor_interval" />
 
+            <!-- ========== 免打扰时段（行内开关 + 点击行调整起止时间） ========== -->
+            <include
+                layout="@layout/layout_common_switch_item"
+                android:id="@+id/item_quiet_hours" />
+
             <!-- ========== 流量提醒 ========== -->
             <TextView
                 android:layout_width="match_parent"

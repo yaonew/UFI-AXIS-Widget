@@ -56,6 +56,16 @@
                 app:icon="@drawable/ic_arrow_back" />
         </FrameLayout>
 
+        <!-- ========== 设备配置档（多设备切换，放最上面：它决定下面几项改的是谁） ========== -->
+        <include
+            layout="@layout/layout_common_setting_item"
+            android:id="@+id/item_device_profile" />
+
+        <!-- ========== 数据源（弹窗选择：UFI-TOOLS / Goform 直连） ========== -->
+        <include
+            layout="@layout/layout_common_setting_item"
+            android:id="@+id/item_data_source" />
+
         <!-- ========== 基础连接（弹窗编辑：地址 + 口令） ========== -->
         <include
             layout="@layout/layout_common_setting_item"

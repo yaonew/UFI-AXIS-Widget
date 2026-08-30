@@ -5,15 +5,15 @@ plugins {
 }
 
 android {
-    namespace = "com.ufi_toolswidget"
+    namespace = "com.ufi_axis_widget"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.ufi_toolswidget"
+        applicationId = "com.ufi_axis_widget"
         minSdk = 26
         targetSdk = 34
-        versionCode = 2
-        versionName = "0.2.1"
+        versionCode = 3
+        versionName = "0.3.0"
 
     }
 
@@ -60,14 +60,14 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.androidx.cardview)
+    implementation(libs.androidx.recyclerview)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.okhttp)
     implementation(libs.jspecify)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
-    implementation(libs.androidx.room.paging)
     ksp(libs.androidx.room.compiler)
-    implementation(libs.androidx.paging.runtime.ktx)
 }

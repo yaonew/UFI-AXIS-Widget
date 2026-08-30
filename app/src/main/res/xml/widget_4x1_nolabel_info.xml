@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    4×1 条形版的「隐藏名称」影子声明，内容必须与 widget_4x1_info.xml 逐项一致。
+    唯一的区别在 Manifest：影子 receiver 的 android:label 是零宽空格。
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="250dp"
+    android:minHeight="40dp"
+    android:minResizeWidth="180dp"
+    android:minResizeHeight="40dp"
+    android:maxResizeWidth="530dp"
+    android:maxResizeHeight="120dp"
+    android:updatePeriodMillis="1800000"
+    android:initialLayout="@layout/widget_4x1"
+    android:previewLayout="@layout/widget_4x1"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen|keyguard"
+    android:targetCellWidth="4"
+    android:targetCellHeight="1"
+    android:description="@string/widget_description"
+    android:configure="com.ufi_axis_widget.WidgetConfigActivity"
+    android:widgetFeatures="reconfigurable|configuration_optional" />

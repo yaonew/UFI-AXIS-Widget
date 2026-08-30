@@ -5,7 +5,7 @@
     android:minResizeWidth="180dp"
     android:minResizeHeight="40dp"
     android:maxResizeWidth="530dp"
-    android:maxResizeHeight="50dp"
+    android:maxResizeHeight="120dp"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_4x1"
     android:previewLayout="@layout/widget_4x1"
@@ -14,4 +14,6 @@
     android:targetCellWidth="4"
     android:targetCellHeight="1"
     android:description="@string/widget_description"
+    android:configure="com.ufi_axis_widget.WidgetConfigActivity"
     android:widgetFeatures="reconfigurable|configuration_optional" />
+

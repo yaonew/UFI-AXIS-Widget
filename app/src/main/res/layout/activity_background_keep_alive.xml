@@ -92,6 +92,16 @@
             <include
                 layout="@layout/layout_common_setting_item"
                 android:id="@+id/item_notif_custom" />
+
+            <!-- 常驻通知显示实时数据（与上面的自定义伪装文案互斥） -->
+            <include
+                layout="@layout/layout_common_switch_item"
+                android:id="@+id/item_notif_live_data" />
+
+            <!-- 实时数据显示项（通知与快捷设置磁贴共用） -->
+            <include
+                layout="@layout/layout_common_setting_item"
+                android:id="@+id/item_status_fields" />
         </LinearLayout>
 
         <!-- ========== 权限优化 ========== -->

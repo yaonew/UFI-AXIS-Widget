@@ -134,18 +134,12 @@
                 android:layout_marginStart="2dp"
                 android:text="--"
                 android:textColor="#777777"
-                android:textSize="11sp" />
-
-            <TextView
-                android:id="@+id/tv_charging"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
-                android:text=""
-                android:textColor="#F59E0B"
-                android:textSize="11sp" />
+                android:textSize="11sp"
+                android:maxLines="1"
+                android:ellipsize="end" />
         </LinearLayout>
     </LinearLayout>
+
 
     <!-- ========= 第二行：流量大数字 ========= -->
     <LinearLayout

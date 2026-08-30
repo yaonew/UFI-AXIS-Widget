@@ -36,7 +36,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="UFITOOLS-Widget"
+                        android:text="UFI-AXIS Widget"
                         android:textColor="@color/text_main"
                         android:textSize="32sp"
                         android:textStyle="bold"
@@ -62,10 +62,40 @@
                 android:background="@drawable/bg_widget_card"
                 android:padding="24dp">
 
+                <!-- 数据源选择：点击弹下拉菜单（不可手动输入）。
+                     原来是三个并排的 ToggleButton，源名一长就挤成两行、按钮高度还不一致。 -->
+                <include
+                    layout="@layout/layout_common_input_field"
+                    android:id="@+id/item_data_source" />
+
+                <!-- 当前源的说明。三段文案长短不一（2~3 行），这里固定 3 行高度：
+                     不固定的话切换数据源时下面整张卡片会跟着上下跳。 -->
+                <TextView
+                    android:id="@+id/tv_source_hint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:minLines="3"
+                    android:maxLines="3"
+                    android:ellipsize="end"
+                    android:textColor="@color/text_sub"
+                    android:alpha="0.6"
+                    android:textSize="12sp" />
+
+
+                <!-- 分割线 -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="24dp"
+                    android:background="@color/text_sub"
+                    android:alpha="0.1" />
+
                 <!-- 设备地址 -->
                 <include
                     layout="@layout/layout_common_input_field"
                     android:id="@+id/item_device_address" />
+
 
                 <!-- 分割线 -->
                 <View

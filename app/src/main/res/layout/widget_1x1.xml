@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    1×1 迷你版：中间一个可切换的大字指标，右上角信号/制式/电量图标。
+    （provider 元数据仍叫 widget_2x1_info.xml、SP 键前缀仍是 "2x1"：前者被 Manifest 引用，
+      后者一改就丢用户全部设置，都是发布后不可动的历史包袱；布局文件名不受此约束，已更名）
+
+    内容区用 FrameLayout 叠放而不是 LinearLayout 排队：大字要真正居中（layout_gravity=center），
+    图标行要真正贴右上（top|end），用线性布局做不到两者同时成立。
+
+    字号按一格宽度（常见 90dp 左右）定：大字要容得下「1234.5」这种六位数不被切掉，
+    所以没有沿用 2×1 时期的 26sp。
+
+    大字显示哪一项由「大字 · xxx」那组开关决定，多选后双击组件轮播切换，
+    候选顺序见 WidgetRegistry.CENTER_METRIC_FIELDS。
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:elevation="6dp"
+    android:outlineProvider="background"
+    android:background="@drawable/bg_widget_mask_transparent">
+
+    <!-- 背景图层 -->
+    <ImageView
+        android:id="@+id/widget_bg_image"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:src="@drawable/bg_widget_mask" />
+
+    <!-- 描边层 -->
+    <ImageView
+        android:id="@+id/widget_bg_stroke"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:src="@drawable/bg_widget_stroke" />
+
+    <!--
+        正常数据内容区。
+
+        内边距按 4×2（250×110dp 用 8dp）的比例折算：小尺寸沿用同样的绝对值会显得
+        边距过大，因为它占的是整块组件宽度的一大截。110dp 宽折下来约 4dp。
+    -->
+    <FrameLayout
+        android:id="@+id/widget_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp">
+
+        <!--
+            中间大字 + 单位 + 标签，三行竖排。
+
+            单位不跟大字并排：一格宽只有 90dp 上下，「1234.5」+「GB」并排就超出去了，
+            而 TextView 超宽是直接切掉（大字不该 ellipsize 成省略号）。竖排之后
+            大字能吃满整格宽度，单位换到下一行。
+            整块宽度取 match_parent、文字各自居中：wrap_content 时一旦超宽会左右两边
+            一起被切，取满宽至少能用上全部可见区域。
+
+            marginTop 把整块往下压 8dp：右上角图标行占着上半区，纯居中时下方空得比上方多。
+            FrameLayout 的 CENTER_VERTICAL 会把 topMargin 叠加到居中位置上，所以这就是纯粹的下移。
+            没有改成 bottom 对齐 + marginBottom（那样才是字面意义的「固定下间隙」）：格子高度由
+            launcher 决定，一旦给到 110dp 以上，贴底会把文字甩到最下沿；下移量固定则只是略微偏下。
+        -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="8dp"
+            android:orientation="vertical"
+            android:gravity="center_horizontal">
+
+            <TextView
+                android:id="@+id/tv_flow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="--"
+                android:textColor="#777777"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:includeFontPadding="false"
+                android:maxLines="1" />
+
+            <TextView
+                android:id="@+id/tv_flow_unit"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="GB"
+                android:textColor="#777777"
+                android:textSize="10sp"
+                android:includeFontPadding="false"
+                android:maxLines="1" />
+
+            <TextView
+                android:id="@+id/tv_flow_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="本月流量"
+                android:textColor="#777777"
+                android:textSize="8sp"
+                android:includeFontPadding="false"
+                android:maxLines="1" />
+        </LinearLayout>
+
+
+        <!--
+            右上角：信号格 + 制式 + 电量。
+            marginTop 在内容区的 2dp padding 之外再压 4dp：这一行贴着描边时看着像被裁掉半截，
+            中间大字块是 layout_gravity=center、不受这里影响，所以不会把大字挤下去。
+        -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|end"
+            android:layout_marginTop="4dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:id="@+id/iv_signal_bars"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:src="@drawable/ic_signal_0"
+                android:scaleType="fitCenter" />
+
+            <ImageView
+                android:id="@+id/iv_network"
+                android:layout_width="13dp"
+                android:layout_height="13dp"
+                android:layout_marginStart="1dp"
+                android:src="@drawable/ic_network_5g"
+                android:scaleType="fitCenter" />
+
+            <TextView
+                android:id="@+id/tv_no_network"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="1dp"
+                android:text="无网络"
+                android:textColor="#777777"
+                android:textSize="8sp"
+                android:visibility="gone" />
+
+            <ImageView
+                android:id="@+id/iv_battery"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_marginStart="2dp"
+                android:src="@drawable/ic_battery_0"
+                android:scaleType="fitCenter" />
+        </LinearLayout>
+
+    </FrameLayout>
+
+    <!-- 错误覆盖层：仅图标，无文字 -->
+    <LinearLayout
+        android:id="@+id/widget_error_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone"
+        android:clickable="false">
+
+        <ImageView
+            android:id="@+id/widget_error_icon"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_router_off"
+            android:scaleType="fitCenter" />
+
+    </LinearLayout>
+
+</FrameLayout>

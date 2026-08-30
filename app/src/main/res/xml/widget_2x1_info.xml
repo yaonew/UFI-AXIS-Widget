@@ -1,17 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    迷你版声明为 1×1。文件名和 provider 名里的 2x1 是历史包袱：
+    SP 里的键（show_*_2x1 / font_size_2x1 / widget.2x1.*）都按这个名字存，
+    改名会让老用户的设置全部读不到，所以只改尺寸声明和展示名。
+-->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
-    android:minWidth="110dp"
+    android:minWidth="40dp"
     android:minHeight="40dp"
-    android:minResizeWidth="80dp"
+    android:minResizeWidth="40dp"
     android:minResizeHeight="40dp"
-    android:maxResizeWidth="180dp"
-    android:maxResizeHeight="50dp"
+    android:maxResizeWidth="250dp"
+    android:maxResizeHeight="110dp"
     android:updatePeriodMillis="1800000"
-    android:initialLayout="@layout/widget_2x1"
-    android:previewLayout="@layout/widget_2x1"
+    android:initialLayout="@layout/widget_1x1"
+    android:previewLayout="@layout/widget_1x1"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen|keyguard"
-    android:targetCellWidth="2"
+    android:targetCellWidth="1"
     android:targetCellHeight="1"
     android:description="@string/widget_description"
+    android:configure="com.ufi_axis_widget.WidgetConfigActivity"
     android:widgetFeatures="reconfigurable|configuration_optional" />
+

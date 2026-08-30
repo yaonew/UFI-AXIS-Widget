@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    2×2 方块版的「隐藏名称」影子声明，内容必须与 widget_2x2_info.xml 逐项一致。
+    唯一的区别在 Manifest：影子 receiver 的 android:label 是零宽空格。
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="110dp"
+    android:minHeight="110dp"
+    android:minResizeWidth="110dp"
+    android:minResizeHeight="110dp"
+    android:maxResizeWidth="250dp"
+    android:maxResizeHeight="250dp"
+    android:updatePeriodMillis="1800000"
+    android:initialLayout="@layout/widget_2x2"
+    android:previewLayout="@layout/widget_2x2"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen|keyguard"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:description="@string/widget_description"
+    android:configure="com.ufi_axis_widget.WidgetConfigActivity"
+    android:widgetFeatures="reconfigurable|configuration_optional" />

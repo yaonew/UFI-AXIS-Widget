@@ -36,8 +36,10 @@ logs/
 # ── Third-party Tool Artifacts ──
 .codegraph/
 .codebuddy/
+.comate/
 .reasonix/
 .icon/
+
 
 # ── Non-source Folders ──
 /scripts/

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.UFITOOLSWidget" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.UfiAxisWidget" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Primary brand color. -->
         <item name="colorPrimary">@color/accent</item>
         <item name="colorOnPrimary">@color/white</item>
@@ -18,7 +18,7 @@
         <item name="android:windowLightStatusBar">true</item>
     </style>
 
-    <style name="Theme.UFITOOLSWidget.Transparent" parent="Theme.UFITOOLSWidget">
+    <style name="Theme.UfiAxisWidget.Transparent" parent="Theme.UfiAxisWidget">
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowContentOverlay">@null</item>

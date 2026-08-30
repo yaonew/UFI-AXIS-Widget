@@ -8,9 +8,10 @@
         android:shortcutLongLabel="@string/add_4x2_widget_long">
         <intent
             android:action="android.intent.action.MAIN"
-            android:targetPackage="com.ufi_toolswidget"
-            android:targetClass="com.ufi_toolswidget.AddWidgetActivity">
+            android:targetPackage="com.ufi_axis_widget"
+            android:targetClass="com.ufi_axis_widget.AddWidgetActivity">
             <extra android:name="widget_size" android:value="4x2" />
         </intent>
     </shortcut>
 </shortcuts>
+

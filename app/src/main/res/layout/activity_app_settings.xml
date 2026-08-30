@@ -73,6 +73,22 @@
             layout="@layout/layout_common_setting_item"
             android:id="@+id/item_refresh_interval" />
 
+        <!-- ========== 指定 Wi-Fi 下刷新（弹窗设置） ========== -->
+        <include
+            layout="@layout/layout_common_setting_item"
+            android:id="@+id/item_wifi_lock" />
+
+        <!-- ========== 省电暂停：纯开关语义，直接在入口右侧给开关 ========== -->
+        <include
+            layout="@layout/layout_common_switch_item"
+            android:id="@+id/item_pause_screen_off" />
+
+        <include
+            layout="@layout/layout_common_switch_item"
+            android:id="@+id/item_pause_power_save" />
+
+
+
         <!-- ========== 自定义背景图片 (暂时隐藏入口) ==========
         <include
             layout="@layout/layout_common_setting_item"

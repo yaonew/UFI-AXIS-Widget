@@ -1,11 +1,15 @@
-# UFI-TOOLS Widget
+# UFI-AXIS Widget
+
+<p align="center">
+  <sub>本项目原名 <strong>UFITOOLS-Widget</strong>，0.3.0 起更名为 UFI-AXIS Widget，包名同时由 <code>com.ufi_toolswidget</code> 改为 <code>com.ufi_axis_widget</code>。</sub>
+</p>
 
 <p align="center">
   ⭐ 如果这个项目对你有帮助，请给它一个 Star！⭐
 </p>
 
 <p align="center">
-  <img src="https://github.com/Asunano/UFITOOLS-Widget/actions/workflows/build.yml/badge.svg" alt="Build Status">
+  <img src="https://github.com/Asunano/UFI-AXIS-Widget/actions/workflows/build.yml/badge.svg" alt="Build Status">
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License: MIT">
   <img src="https://img.shields.io/badge/Platform-Android-green.svg" alt="Platform: Android">
   <img src="https://img.shields.io/badge/API-26+-blue.svg" alt="API: 26+">
@@ -23,16 +27,16 @@
   <a href="#技术栈">技术栈</a> •
   <a href="#FAQ">FAQ</a>
 </p>
-<p align="center">我的博客：- [UFITOOLS Widget：专为随身 WiFi 打造的 Android 桌面监控组件](https://blog.drxian.cn/archives/1322)</p>
+<p align="center">我的博客：- [UFITOOLS Widget：专为随身 WiFi 打造的 Android 桌面监控组件](https://blog.losn.cc/archives/1322)</p>
 <p align="center">
-  <img src="docs/images/hero-widget.jpg" alt="UFI-TOOLS Widget 精美小组件" width="600">
+  <img src="docs/images/hero-widget.jpg" alt="UFI-AXIS Widget 精美小组件" width="600">
 </p>
 
 ---
 
 ## 项目简介
 
-**UFI-TOOLS Widget** 是基于 **UFI-TOOLS API** 开发的 Android 桌面小组件应用，用于实时监控随身 WiFi 设备（F50、U30 Air 等）的运行状态。
+**UFI-AXIS Widget** 是一款 Android 桌面小组件应用，用于实时监控随身 WiFi 设备（F50、U30 Air 等）的运行状态。提供 4×2 / 2×2 / 4×1 / 1×1 四种尺寸，支持 **UFI-TOOLS API** 与 **Goform 直连** 两种数据源，可在设置中自由切换；不同数据源下版面与可选显示项会自动适配。
 
 ### 核心价值
 
@@ -42,11 +46,12 @@
 - **美观性**：Material Design + 动态配色 + 自定义背景
 - **智能性**：7 种警报类型 + 智能防抖 + 持久化历史记录
 
-### 为什么选择 UFI-TOOLS Widget？
+### 为什么选择 UFI-AXIS Widget？
 
 | 优势 | 说明 |
 |------|------|
 | **极致实时** | 5 秒级刷新，可自定义间隔 |
+| **四种尺寸** | 4×2 / 2×2 / 4×1 / 1×1，各自独立配置，版面随数据源能力自动切换 |
 | **永不掉线** | 五层保活架构，适配国产 ROM后台限制  |
 | **专业协议** | 完整实现 UFI-TOOLS API + AT 指令透传 |
 | **极致美观** | Material You 动态配色 + 10 种预设主题 + 自定义背景 |
@@ -79,7 +84,7 @@
 
 | 层级 | 机制 | 穿透能力 | 功耗 |
 |------|------|----------|------|
-| 第一层 | NotificationMonitor 协程轮询 | 独立进程，15-600s 间隔 | 极低 |
+| 第一层 | NotificationMonitor 协程轮询 | 主进程协程，15-600s 间隔 | 极低 |
 | 第二层 | 前台服务 + PartialWakeLock | 防止 CPU 休眠 | 低 |
 | 第三层 | AlarmReceiver (setAlarmClock) | **穿透 Doze 模式** | 极低 |
 | 第四层 | WorkManager 周期任务 | 系统级持久化 | 低 |
@@ -103,7 +108,7 @@
 - **三种错误分类**：网络错误 / API 错误 / 通用错误
 - **TCP 可达性检测**：1 秒超时，快速判断设备离线
 - **两级失败计数器**：网络失败 2 次 / API 失败 3 次 → 自动停止
-- **崩溃恢复**：独立进程捕获异常，下次启动弹窗展示
+- **崩溃恢复**：全局 `UncaughtExceptionHandler` 捕获并落盘，下次启动弹窗展示
 - **重试机制**：`Result.retry()`（非 `failure()`），确保 ping 恢复后自动解除
 
 ---
@@ -111,11 +116,18 @@
 ## 功能特性
 
 
-### 桌面小组件 (4×2)
+### 桌面小组件（4 种尺寸）
 
-桌面直接展示设备核心状态，无需打开应用。
+桌面直接展示设备核心状态，无需打开应用。四种尺寸各自独立配置，互不影响。
 
-**布局设计**
+| 组件 | 格数 | 内容 |
+|------|------|------|
+| UFI 状态 (4×2) | 4×2 | 型号 + 信号/制式/电量头部栏、今日/本月流量、硬件状态行、更新时间 |
+| UFI 方块 (2×2) | 2×2 | 本月流量大字 + 今日流量 + 信号 + 电量/温度 |
+| UFI 条形 (4×1) | 4×1 | 型号 + 本月流量 + 信号 + 电量/温度，四栏铺满 |
+| UFI 迷你 (1×1) | 1×1 | 中间一个可切换的大字指标，右上角信号/制式/电量（固定显示） |
+
+**4×2 布局设计**
 
 ```
 ┌────────────────────────────────┐
@@ -133,16 +145,32 @@
   <img src="docs/images/widget-gallery.jpg" alt="小组件样式集锦" width="600">
 </p>
 
-**配置项**
+**版面随数据源自动切换**
 
-通过「小组件设置」页面调整：
+每种尺寸都注册了多个版面变体，按当前数据源的能力挑第一个能满足的：
 
-- **显示项开关**（8 项可独立控制）：流量、温度、型号、信号、电池、CPU、内存、更新时间
+- **UFI-TOOLS**：字段齐全，走完整版面（含 CPU / 内存 / 温度 / 今日流量）
+- **Goform 直连**：固件不提供 CPU / 内存 / 温度 / 今日流量，自动切到直连版面，把这些槽位换成运营商 / 频段 / SINR / RSRP 等 AT 侧能拿到的信息
+
+不支持的显示项**直接不列出**，而不是灰着让人以为坏了。切换数据源不需要删掉组件重新添加。
+
+**按尺寸独立配置**
+
+「小组件设置」顶部的「设置哪个组件」决定这一页所有改动的落点：
+
+- **全局默认**：所有尺寸共用
+- **具体组件实例**：只影响桌面上那一个（首次改动会自动开启「单独设置外观」，并把当前全局值快照进去，所以只有你改的那一项会变）
+
+显示项开关按尺寸给：4×2 最多 8 项（流量、温度、型号、信号、电池、CPU、内存、更新时间），1×1 只开放「大字显示哪一项」（多选后双击组件轮播切换），右上角图标固定显示。开关面板底部会写明这个尺寸有哪些槽位是固定的、为什么。
+
+**外观**
+
 - **小组件主题**：跟随应用 / 强制浅色 / 强制深色
 - **主题配色**：跟随应用配色 / 独立选择颜色主题索引
 - **背景透明度**：0-100% 滑块调节
-- **自定义背景图片**：从相册选择图片，支持裁剪适配
+- **自定义背景图片**：从相册选择图片，支持裁剪适配（取景框与源图路径绑定，换图自动回落居中裁）
 - **圆角裁剪**：20dp 圆角（可通过兜底开关关闭为直角）
+- **隐藏小组件名称**：按尺寸独立切换。实现方式是启用一个 `android:label` 为零宽空格的影子 receiver、停用原 receiver，因此**该尺寸桌面上已放置的实例会被系统移除，需要重新添加**（其他尺寸不受影响）
 
 **Material You 动态配色（Android 12+）**
 
@@ -196,20 +224,27 @@ Room 数据库持久化存储所有警报记录：
 
 ```
 ┌─────────────────────────────────────────┐
-│            UI 层（View）              │
-│  MainActivity / Widget / Notification  │
+│         UI 层（Activity + Widget）        │
+│  MainActivity / 各设置页 / BaseWifiWidget │
 ├─────────────────────────────────────────┤
 │         业务逻辑层（ViewModel）          │
-│  MainViewModel / MonitorViewModel      │
+│  MainViewModel / AlertHistoryViewModel   │
 ├─────────────────────────────────────────┤
-│        数据采集层（Repository）          │
-│  DeviceRepository / ATRepository       │
+│      数据源分发层（Registry）            │
+│  DeviceDataSourceRegistry + WifiGuard    │
 ├─────────────────────────────────────────┤
-│       网络层（Network）                │
-│  ApiService / OkHttp / KanoAuth       │
+│        数据采集层（Engine）              │
+│  WifiCrawlUfiTools（Kano 签名 + AT 透传）│
+│  GoformDataSource（goform 直连）         │
+├─────────────────────────────────────────┤
+│        配置/缓存层（Config）            │
+│  SPUtil（SP 配置 + 数据指纹 + 失败计数） │
 ├─────────────────────────────────────────┤
 │      本地存储层（Local）                │
-│  Room / DataStore / File              │
+│  Room（Alert/Traffic）/ SP / File       │
+├─────────────────────────────────────────┤
+│    保活/后台层（KeepAlive）            │
+│  service + worker + AlarmReceiver + 无障碍 │
 └─────────────────────────────────────────┘
 ```
 
@@ -218,10 +253,10 @@ Room 数据库持久化存储所有警报记录：
 ## 技术栈
 
 - **语言**：Kotlin 2.0.21（100% Kotlin，0% Java）
-- **架构**：MVVM + Repository + DataSource
+- **架构**：MVVM（ViewModel + 数据源注册表分发 + SPUtil/Room 缓存）
 - **异步**：Kotlin Coroutines + Flow
 - **网络**：OkHttp 4.12.0 + 自定义 Kano 签名拦截器
-- **数据库**：Room 2.7.1（SQLite 封装）
+- **数据库**：Room 2.6.1（SQLite 封装）
 - **UI**：ViewBinding + Material Design 3 + Dynamic Colors
 - **桌面小组件**：AppWidgetProvider + RemoteViews + WidgetBitmapCache
 - **后台保活**：Foreground Service + AlarmManager + WorkManager + AccessibilityService
@@ -235,43 +270,55 @@ Room 数据库持久化存储所有警报记录：
 ## 项目结构
 
 ```
-UFITOOLS-Widget/
+UFI-AXIS-Widget/
 ├── app/
 │   ├── src/main/
-│   │   ├── java/com/example/ufitoolswidget/
-│   │   │   ├── data/               # 数据层
-│   │   │   │   ├── api/           # API 服务（UFI-TOOLS API 定义）
-│   │   │   │   ├── repository/    # 数据仓库（DeviceRepository/ATRepository）
-│   │   │   │   ├── local/         # 本地存储（Room/DataStore）
-│   │   │   │   └── model/         # 数据模型（Request/Response）
-│   │   │   ├── domain/            # 领域层（业务逻辑）
-│   │   │   │   ├── usecase/       # 用例（采集/通知/保活）
-│   │   │   │   └── model/         # 领域模型
-│   │   │   ├── ui/                # UI 层
-│   │   │   │   ├── main/          # 主界面（MainActivity/MainViewModel）
-│   │   │   │   ├── widget/        # 小组件（UFIWidgetProvider/WidgetConfigActivity）
-│   │   │   │   ├── notification/  # 通知管理（NotificationSettingsActivity）
-│   │   │   │   ├── settings/      # 设置（SettingsActivity/SettingsViewModel）
-│   │   │   │   └── about/         # 关于（AboutActivity）
-│   │   │   ├── receiver/          # 广播接收器
-│   │   │   │   ├── AlarmReceiver.kt         # 定时唤醒
-│   │   │   │   ├── BootReceiver.kt          # 开机自启
-│   │   │   │   └── NetworkReceiver.kt       # 网络变化监听
-│   │   │   ├── service/           # 服务
-│   │   │   │   ├── ForegroundService.kt     # 前台服务
-│   │   │   │   ├── NotificationMonitor.kt   # 通知监听（独立进程）
-│   │   │   │   └── KeepAliveService.kt     # 保活服务
-│   │   │   ├── worker/            # WorkManager Worker
-│   │   │   │   └── PeriodicWorker.kt        # 周期任务
-│   │   │   ├── utils/             # 工具类
-│   │   │   │   ├── KanoAuth.kt            # Kano 签名认证
-│   │   │   │   ├── ATCommandParser.kt      # AT 指令解析
-│   │   │   │   ├── SignalQualityCalculator.kt # 信号质量计算
-│   │   │   │   ├── NotificationHelper.kt    # 通知助手
-│   │   │   │   ├── KeepAliveManager.kt     # 保活管理器
-│   │   │   │   ├── DebugLogger.kt          # 调试日志
-│   │   │   │   └── WidgetBitmapCache.kt    # 小组件位图缓存
-│   │   │   └── UFIApplication.kt          # Application 类
+│   │   ├── java/com/ufi_axis_widget/
+│   │   │   ├── UfiAxisApplication.kt      # Application 入口（崩溃/动态配色/保活编排）
+│   │   │   ├── MainActivity.kt / MainViewModel.kt   # 主界面
+│   │   │   ├── SetupActivity.kt            # 初次配置向导
+│   │   │   ├── widget/
+│   │   │   │   ├── WifiWidget.kt           # BaseWifiWidget + 4×2/2×2/4×1/1×1 各自的主/影子 Receiver
+│   │   │   │   └── WidgetRegistry.kt       # 声明式注册表：尺寸 → 版面变体（按数据源能力挑）→ 字段/渲染器
+│   │   │   ├── util/                       # 业务逻辑与工具（无独立 data/domain 层）
+│   │   │   │   ├── source/                 # 数据源分发层
+│   │   │   │   │   ├── DeviceDataSourceRegistry.kt  # 按配置分发到具体数据源
+│   │   │   │   │   ├── DeviceDataSource.kt          # 数据源契约 + 能力声明
+│   │   │   │   │   ├── UfiToolsDataSource.kt        # UFI-TOOLS 薄适配器
+│   │   │   │   │   └── GoformDataSource.kt          # goform 直连（LD 挑战 + 双层 SHA-256 + multi_data 批读）
+│   │   │   │   ├── WifiCrawlUfiTools.kt    # UFI-TOOLS 采集引擎：HTTP + Kano 签名 + AT 指令透传 + 信号换算
+│   │   │   │   ├── WifiGuard.kt            # 指定 Wi-Fi 守卫：非白名单网络下暂停采集
+│   │   │   │   ├── SPUtil.kt               # 配置中心 / 数据缓存 / 失败计数
+│   │   │   │   ├── NotificationHelper.kt   # 通知渠道 + 全屏意图
+│   │   │   │   ├── NotificationMonitor.kt  # 协程轻量轮询
+│   │   │   │   ├── WidgetBitmapCache.kt    # 背景 Bitmap 缓存
+│   │   │   │   ├── WidgetLabelToggle.kt    # 按尺寸切换主/影子 receiver，实现隐藏桌面名称
+│   │   │   │   ├── widget/                 # 小组件配置读写
+│   │   │   │   │   ├── WidgetPrefs.kt      # 三层作用域键（实例 → 形态 → 旧裸键）+ 旧键迁移
+│   │   │   │   │   ├── WidgetAppearance.kt # 外观作用域解析与快照
+│   │   │   │   │   └── AppearanceScope.kt  # 「设置哪个组件」的状态与按作用域读写入口
+│   │   │   │   ├── ThemeColors.kt / ThemeUtil.kt   # 主题与动态配色
+│   │   │   │   ├── DebugLogger.kt          # 调试日志（内存+文件双写、脱敏）
+│   │   │   │   ├── CrashHandler.kt         # 独立进程崩溃捕获
+│   │   │   │   ├── TrafficRecordManager.kt / AlertHistoryManager.kt  # Room 封装
+│   │   │   │   └── ...（对话框/裁剪/滑块/分页等 UI 辅助）
+│   │   │   ├── service/                    # 保活服务与广播
+│   │   │   │   ├── BackgroundMonitorService.kt   # 前台服务
+│   │   │   │   ├── AlarmReceiver.kt        # Doze 穿透闹钟
+│   │   │   │   ├── BootReceiver.kt         # 开机自启
+│   │   │   │   └── KeepAliveAccessibilityService.kt  # 无障碍保活
+│   │   │   ├── worker/                     # WorkManager 任务
+│   │   │   │   ├── WifiWorker.kt           # 周期采集 + TCP ping + 失败计数
+│   │   │   │   └── KeepAlivePeriodicWorker.kt
+│   │   │   ├── db/                         # Room 数据库
+│   │   │   │   ├── AppDatabase.kt          # v4，含 1→4 迁移
+│   │   │   │   ├── AlertDao.kt / AlertRecord.kt
+│   │   │   │   └── TrafficDao.kt / TrafficRecord.kt
+│   │   │   ├── view/                       # 自定义 View
+│   │   │   │   ├── LoadingAnimationView.kt
+│   │   │   │   └── ThemeSlider.kt
+│   │   │   ├── WidgetAddedReceiver.kt
+│   │   │   └── *.kt                        # 共约 17 个 Activity（设置/通知/关于/流量记录/调试日志等）
 │   │   ├── res/                   # 资源文件
 │   │   │   ├── layout/           # 布局 XML
 │   │   │   ├── values/           # 值资源（colors/strings/dimens）
@@ -291,11 +338,23 @@ UFITOOLS-Widget/
 
 ### 快速开始
 
-1. 从 [Releases](https://github.com/Asunano/UFITOOLS-Widget/releases) 下载最新 APK 安装
+1. 从 [Releases](https://github.com/Asunano/UFI-AXIS-Widget/releases) 下载最新 APK 安装
 2. 确保手机已连接随身 WiFi 设备的 WiFi 网络
 3. 打开应用，在首次配置向导中填写设备地址和管理口令（默认 `192.168.0.1:2333` / `admin`）
 4. 应用自动探测协议并同步设备信息
-5. 回到桌面，长按添加「UFI 状态 (4x2)」小组件
+5. 回到桌面，长按空白处 → 添加小组件，选择需要的尺寸（4×2 / 2×2 / 4×1 / 1×1）
+
+### 从 0.2.x 升级到 0.3.0（重要）
+
+0.3.0 把应用包名由 `com.ufi_toolswidget` 改为 `com.ufi_axis_widget`。Android 以包名标识应用，
+包名变了系统就当成另一个应用，因此：
+
+- **不是覆盖升级**：0.3.0 会与旧版并存，直接装不会顶掉 0.2.x
+- **配置与历史不会迁移**：设备地址/口令、小组件外观、流量与警报记录都留在旧包的私有目录里，新包读不到
+- **桌面小组件需要重新添加**：旧包的小组件实例属于旧应用，卸载旧版后会一并消失
+
+建议流程：装好 0.3.0 → 在新版里重新走一遍首次配置并重新添加小组件 → 确认无误后再卸载旧版。
+如果需要保留旧的流量历史，先不要卸载旧版。
 
 ### 通知功能配置
 
@@ -308,9 +367,10 @@ UFITOOLS-Widget/
 ### 小组件配置
 
 1. 长按桌面小组件 → 编辑 → 进入「小组件设置」
-2. 调整显示项开关（流量/温度/型号/信号/电池/CPU/内存/时间）
-3. 选择小组件主题和配色
-4. 可选：设置自定义背景图片、调整透明度
+2. 先在顶部「设置哪个组件」选定作用域：全局默认，或桌面上某个具体实例
+3. 调整该作用域的显示项开关（可选项随尺寸和数据源变化）
+4. 选择小组件主题和配色
+5. 可选：设置自定义背景图片、调整透明度、按尺寸隐藏组件名称
 
 ---
 
@@ -334,6 +394,16 @@ UFITOOLS-Widget/
 - F50
 - U30 Air
 - 其他基于 UFI-TOOLS 的设备
+
+未刷 UFI-TOOLS 的设备可以用 **Goform 直连**数据源，直接对接原生 goform 接口，但固件不提供 CPU / 内存 / 温度 / 今日流量，这些显示项会自动隐藏。
+
+### 为什么 Goform 数据源下少了 CPU / 温度这些显示项？
+
+**答**：这些数据来自 UFI-TOOLS 的扩展接口，原生 goform 固件不提供。与其显示 `--` 或者灰着一个点不动的开关，直接不列出更清楚。对应尺寸会切到直连版面，把这些槽位换成运营商 / 频段 / SINR / RSRP 等 AT 侧能读到的信息。
+
+### 开了「隐藏小组件名称」后桌面上的组件消失了？
+
+**答**：这是实现方式的必然结果。桌面只从 receiver 的 `android:label` 读组件名，而 label 在 Manifest 里写死、运行时改不了，所以只能启用一个 label 为零宽空格的影子 receiver 并停用原 receiver；系统会把被停用 receiver 名下的实例判为失效并移除。重新添加一次即可。开关**按尺寸独立生效**，只会影响当前作用域选中的那个尺寸。
 
 ---
 
@@ -378,11 +448,12 @@ UFITOOLS-Widget/
 
 系统信息 + UI 视图快照 + 分类统计 + 最近 50 条 API/30 条 UI/20 条异常日志 + API 连接状态。
 
-通过 FileProvider 分享诊断文件（`ufitools_diagnostic.txt`）。
+通过 FileProvider 分享诊断文件（`ufi_axis_diagnostic.txt`）。
 
 ### 崩溃处理
 
-`CrashHandler` 独立进程（`:crash_handler`）捕获未处理异常，下次启动弹窗展示。
+`CrashHandler` 注册为全局 `Thread.UncaughtExceptionHandler`，捕获未处理异常后落盘，下次启动弹窗展示。
+应用为单进程（0.3.0 起移除了 `:crash_handler` 独立进程，避免两个进程各持一份 SharedPreferences 互相覆盖）。
 
 ---
 

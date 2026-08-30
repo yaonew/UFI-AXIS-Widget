@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "UFI-TOOLS Widget"
+rootProject.name = "UFI-AXIS Widget"
 include(":app")

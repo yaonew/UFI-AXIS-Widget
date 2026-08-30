@@ -60,6 +60,7 @@
 
         <!-- ========== 外观设置 ========== -->
         <TextView
+            android:id="@+id/label_appearance_section"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="20dp"
@@ -70,6 +71,20 @@
             android:alpha="0.6"
             android:textSize="13sp"
             android:textStyle="bold" />
+
+        <!--
+            正在设置哪个组件（弹窗选择：全局默认 + 桌面上已添加的组件）。
+            外观改的是「全局」还是「桌面上那一个组件」，光看下面几项看不出来，
+            所以入口要常驻显示当前作用域。桌面上没有组件时整行隐藏。
+        -->
+        <include
+            layout="@layout/layout_common_setting_item"
+            android:id="@+id/item_appearance_scope" />
+
+        <!-- 单独设置外观（仅在选中某个桌面组件时显示） -->
+        <include
+            layout="@layout/layout_common_switch_item"
+            android:id="@+id/item_appearance_override" />
 
         <!-- 跟随应用主题（开关） -->
         <include
@@ -95,24 +110,13 @@
 
         </LinearLayout>
 
-        <!-- 显示信息（弹窗多选） -->
+        <!-- 显示信息：先选组件形态，再编辑该形态的显示项（列表由 WidgetRegistry 动态生成） -->
         <include
             layout="@layout/layout_common_setting_item"
             android:id="@+id/item_display_info" />
 
-        <!-- 2×1 迷你版独立设置（暂时隐藏） -->
-        <include
-            layout="@layout/layout_common_setting_item"
-            android:id="@+id/item_display_info_2x1"
-            android:visibility="gone" />
-
-        <!-- 4×1 条形版独立设置（暂时隐藏） -->
-        <include
-            layout="@layout/layout_common_setting_item"
-            android:id="@+id/item_display_info_4x1"
-            android:visibility="gone" />
-
         <!-- ========== 刷新设置 ========== -->
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -130,8 +134,15 @@
             layout="@layout/layout_common_setting_item"
             android:id="@+id/item_widget_interval" />
 
+        <!-- 三击小组件循环切换设备配置档（行内开关 + 点击行选参与档位） -->
+        <include
+            layout="@layout/layout_common_switch_item"
+            android:id="@+id/item_widget_triple_tap" />
+
+
         <!-- ========== 背景设置 ========== -->
         <TextView
+            android:id="@+id/label_background_section"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="20dp"

@@ -58,6 +58,17 @@
                 app:iconTint="@color/text_main" />
         </FrameLayout>
 
+        <!-- ========== 外观作用域：正在设置哪个组件（桌面上没有组件时整块隐藏） ========== -->
+        <include
+            layout="@layout/layout_common_setting_item"
+            android:id="@+id/item_appearance_scope"
+            android:visibility="gone" />
+
+        <include
+            layout="@layout/layout_common_switch_item"
+            android:id="@+id/item_appearance_override"
+            android:visibility="gone" />
+
         <!-- ========== 动态配色 Material You（开关，仅 API 31+ 显示） ========== -->
         <include
             layout="@layout/layout_common_switch_item"

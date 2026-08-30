@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    goform 专用 4×1 条形版。
+
+    与 widget_4x1 的差别只有右下那一行：通用版放的是「dBm + 温度 + 更新时间」，
+    而 goform 协议里没有温度字段，那个位置在 goform 下永远是空的。
+    这里换成 goform 真正有的信号维度：dBm + 频段（`at_band`）+ 更新时间。
+
+    结构性 id（widget_root / widget_bg_image / widget_bg_stroke / widget_content /
+    widget_error_*）与通用版完全一致，这样主题着色、圆角裁剪、背景位图都能共用
+    applyWidgetTheme4x1，不需要再写一份。
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:elevation="6dp"
+    android:outlineProvider="background"
+    android:background="@drawable/bg_widget_mask_transparent">
+
+    <!-- 背景图层 -->
+    <ImageView
+        android:id="@+id/widget_bg_image"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:src="@drawable/bg_widget_mask" />
+
+    <!-- 描边层 -->
+    <ImageView
+        android:id="@+id/widget_bg_stroke"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:src="@drawable/bg_widget_stroke" />
+
+    <!-- 正常数据内容区。内边距与通用 4×1 一致 -->
+    <LinearLayout
+        android:id="@+id/widget_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:baselineAligned="false"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp">
+
+        <!-- 左：本月流量大字 + 标签 -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:baselineAligned="false"
+                android:gravity="bottom">
+
+                <TextView
+                    android:id="@+id/tv_flow"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="--"
+                    android:textColor="#777777"
+                    android:textSize="25sp"
+                    android:textStyle="bold"
+                    android:includeFontPadding="false"
+                    android:maxLines="1" />
+
+                <TextView
+                    android:id="@+id/tv_flow_unit"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="3dp"
+                    android:layout_marginBottom="1dp"
+                    android:text="GB"
+                    android:textColor="#777777"
+                    android:textSize="11sp"
+                    android:includeFontPadding="false" />
+            </LinearLayout>
+
+            <!-- 大字下方留标签 + 运营商：goform 有 network_provider，这里比通用版多一个维度 -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tv_flow_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="本月流量"
+                    android:textColor="#777777"
+                    android:textSize="10sp"
+                    android:includeFontPadding="false" />
+
+                <TextView
+                    android:id="@+id/tv_carrier"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="5dp"
+                    android:maxWidth="88dp"
+                    android:text="--"
+                    android:textColor="#777777"
+                    android:textSize="10sp"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!--
+            右：图标行 + 小字行，两行各占一半高度（0dp + weight=1）。
+            这里不能用「weight=1 的空白 View」撑开：RemoteViews 的 inflater 只放行带
+            @RemoteView 注解的类，塞 <View> 会抛 InflateException，桌面上表现为
+            「载入时出现问题」。
+        -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_marginStart="8dp"
+            android:orientation="vertical"
+            android:gravity="end">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:id="@+id/iv_signal_bars"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_signal_0"
+                    android:scaleType="fitCenter" />
+
+                <ImageView
+                    android:id="@+id/iv_network"
+                    android:layout_width="15dp"
+                    android:layout_height="15dp"
+                    android:layout_marginStart="2dp"
+                    android:src="@drawable/ic_network_4g"
+                    android:scaleType="fitCenter" />
+
+                <TextView
+                    android:id="@+id/tv_no_network"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="2dp"
+                    android:text="无网络"
+                    android:textColor="#777777"
+                    android:textSize="9sp"
+                    android:visibility="gone" />
+
+                <ImageView
+                    android:id="@+id/iv_battery"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_marginStart="7dp"
+                    android:src="@drawable/ic_battery_0"
+                    android:scaleType="fitCenter" />
+
+                <TextView
+                    android:id="@+id/tv_battery"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="1dp"
+                    android:text="--"
+                    android:textColor="#777777"
+                    android:textSize="11sp"
+                    android:includeFontPadding="false" />
+
+                <!--
+                    型号排在这一行末尾。maxWidth 是必需的：这一列是 wrap_content，
+                    型号越长整列越宽，左边大字那栏是 weight=1、会被挤到把数字切掉。
+                -->
+                <ImageView
+                    android:id="@+id/iv_router"
+                    android:layout_width="13dp"
+                    android:layout_height="13dp"
+                    android:layout_marginStart="7dp"
+                    android:layout_marginEnd="2dp"
+                    android:src="@drawable/ic_router"
+                    android:scaleType="fitCenter" />
+
+                <TextView
+                    android:id="@+id/tv_model"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:maxWidth="72dp"
+                    android:text="--"
+                    android:textColor="#777777"
+                    android:textSize="11sp"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+            </LinearLayout>
+
+            <!-- 第二行：dBm + 频段 + 更新时间（通用版这里是温度） -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tv_signal_dbm"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="--"
+                    android:textColor="#777777"
+                    android:textSize="9sp"
+                    android:includeFontPadding="false"
+                    android:maxLines="1" />
+
+                <ImageView
+                    android:id="@+id/iv_band"
+                    android:layout_width="13dp"
+                    android:layout_height="13dp"
+                    android:layout_marginStart="6dp"
+                    android:src="@drawable/ic_blur"
+                    android:scaleType="fitCenter" />
+
+                <TextView
+                    android:id="@+id/tv_band"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="1dp"
+                    android:maxWidth="64dp"
+                    android:text="--"
+                    android:textColor="#777777"
+                    android:textSize="9sp"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <TextView
+                    android:id="@+id/tv_update_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:text="--"
+                    android:textColor="#777777"
+                    android:textSize="9sp"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+            </LinearLayout>
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- 错误覆盖层：紧凑型，横向 icon + text -->
+    <LinearLayout
+        android:id="@+id/widget_error_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:visibility="gone"
+        android:clickable="false">
+
+        <ImageView
+            android:id="@+id/widget_error_icon"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginEnd="6dp"
+            android:src="@drawable/ic_router_off"
+            android:scaleType="fitCenter" />
+
+        <TextView
+            android:id="@+id/widget_error_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="设备连接失败"
+            android:textColor="#777777"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</FrameLayout>

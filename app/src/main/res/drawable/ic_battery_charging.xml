@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    充电态电池图标。
+
+    与 ic_battery_0..4 同一套外壳路径（stroke 描边 + 硬编码 #222222），
+    只是把内部的电量格换成一道实心闪电 —— 颜色靠运行时
+    setColorFilter 覆盖，所以能跟随主题与动态配色变色。
+
+    刻意不叠加电量格：24dp 的腔体里再塞 4 根竖线会和闪电糊在一起，
+    具体电量由旁边的百分比文本承担。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M0,0h24v24H0z" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#222222"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M6,7h11a2,2 0,0 1,2 2v0.5a0.5,0.5 0,0 0,0.5 0.5a0.5,0.5 0,0 1,0.5 0.5v3a0.5,0.5 0,0 1,-0.5 0.5a0.5,0.5 0,0 0,-0.5 0.5v0.5a2,2 0,0 1,-2 2h-11a2,2 0,0 1,-2 -2v-6a2,2 0,0 1,2 -2" />
+    <path
+        android:fillColor="#222222"
+        android:pathData="M13,9L9.6,12.9L11.7,12.9L11,15L14.4,11.1L12.3,11.1z" />
+</vector>

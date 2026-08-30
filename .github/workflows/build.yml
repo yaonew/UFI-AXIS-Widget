@@ -138,12 +138,12 @@ jobs:
       - name: Rename Signed APK
         run: |
           cp app/build/outputs/apk/release/app-release.apk \
-             app/build/outputs/apk/release/UFITOOLS-Widget-${{ github.ref_name }}.apk
+             app/build/outputs/apk/release/UFI-AXIS-Widget-${{ github.ref_name }}.apk
 
       - name: Calculate SHA256
         id: sha256
         run: |
-          SHA256=$(sha256sum app/build/outputs/apk/release/UFITOOLS-Widget-${{ github.ref_name }}.apk | cut -d' ' -f1)
+          SHA256=$(sha256sum app/build/outputs/apk/release/UFI-AXIS-Widget-${{ github.ref_name }}.apk | cut -d' ' -f1)
           echo "hash=$SHA256" >> $GITHUB_OUTPUT
           echo "SHA256: $SHA256"
 
@@ -152,7 +152,7 @@ jobs:
         with:
           name: release-apks
           path: |
-            app/build/outputs/apk/release/UFITOOLS-Widget-${{ github.ref_name }}.apk
+            app/build/outputs/apk/release/UFI-AXIS-Widget-${{ github.ref_name }}.apk
             app/build/outputs/apk/release/app-release.apk
           retention-days: 30
 
@@ -193,10 +193,10 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "UFITOOLS-Widget ${{ github.ref_name }}"
+          name: "UFI-AXIS Widget ${{ github.ref_name }}"
           body_path: /tmp/release_body.md
           files: |
-            release-apks/UFITOOLS-Widget-${{ github.ref_name }}.apk
+            release-apks/UFI-AXIS-Widget-${{ github.ref_name }}.apk
             app-debug.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -206,10 +206,10 @@ jobs:
         run: |
           TAG="${{ github.ref_name }}"
           VERSION="${TAG#v}"
-          APK_URL="https://github.com/Asunano/UFITOOLS-Widget/releases/download/${TAG}/UFITOOLS-Widget-${TAG}.apk"
+          APK_URL="https://github.com/Asunano/UFI-AXIS-Widget/releases/download/${TAG}/UFI-AXIS-Widget-${TAG}.apk"
 
           APK_SIZE=0
-          APK_FILE="release-apks/UFITOOLS-Widget-${TAG}.apk"
+          APK_FILE="release-apks/UFI-AXIS-Widget-${TAG}.apk"
           if [ -f "$APK_FILE" ]; then
             APK_SIZE=$(stat --format=%s "$APK_FILE" 2>/dev/null || stat -c%s "$APK_FILE" 2>/dev/null || echo "0")
           fi
@@ -218,9 +218,18 @@ jobs:
           APK_SHA256="${{ needs.build-release.outputs.sha256 }}"
           echo "SHA256: $APK_SHA256"
 
-          # Changelog: 仅使用最新一次提交的内容
+          # Changelog: 仅使用最新一次提交的内容。
+          # 原文直接交给下面的 jq --arg，由 jq 负责转义 —— 先用 `jq -Rs .` 包一层
+          # 再传给 --arg 会被转义两次，写进 version.json 的值会带上字面引号和 \n。
           CHANGELOG_RAW=$(git log -1 --pretty=format:"%B")
-          CHANGELOG_ESC=$(echo "${CHANGELOG_RAW}" | jq -Rs .)
+
+          # version.json 的 changelog 必须是 "|" 分隔的一行：
+          # 应用端 UpdateChecker.formatChangelog 按 "|" 拆条显示，直接塞多行正文
+          # 会被当成一整段渲染。这里去掉空行后用 "|" 连接，提交信息照常写多行即可。
+          CHANGELOG_ONELINE=$(printf '%s\n' "$CHANGELOG_RAW" \
+            | sed -e 's/[[:space:]]*$//' -e '/^$/d' \
+            | paste -sd '|' -)
+
 
           PUBLISHED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           PUBLISHED_DATE="$(date -u +%Y-%m-%d)"
@@ -236,7 +245,7 @@ jobs:
             --argjson apkSize "$APK_SIZE" \
             --arg apkSha256 "$APK_SHA256" \
             --arg publishedAt "$PUBLISHED_AT" \
-            --arg changelog "$CHANGELOG_ESC" \
+            --arg changelog "$CHANGELOG_ONELINE" \
             '{
               versionName: $versionName,
               versionCode: $versionCode,
@@ -252,7 +261,7 @@ jobs:
           cat version.json
 
           # ===== 2. 更新 CHANGELOG.md =====
-          # git log --pretty=format:"- %s" 已自带 "- " 前缀，直接使用
+          # 与 version.json 用同一份 %B 正文，保证两处内容一致
           CHANGELOG_MD="${CHANGELOG_RAW}"
           NEW_ENTRY="## v${VERSION} (${PUBLISHED_DATE})
 

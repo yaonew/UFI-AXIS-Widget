@@ -14,4 +14,6 @@
     android:targetCellWidth="4"
     android:targetCellHeight="2"
     android:description="@string/widget_description"
+    android:configure="com.ufi_axis_widget.WidgetConfigActivity"
     android:widgetFeatures="reconfigurable|configuration_optional" />
+
