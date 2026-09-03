@@ -1,5 +1,6 @@
 package com.ufi_axis_widget.widget
 
+import android.app.AlarmManager
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
@@ -40,6 +41,18 @@ abstract class BaseWifiWidget(val layoutId: Int) : AppWidgetProvider() {
         private const val TAG = "WifiWidget"
         private const val RENDER_DEDUP_MS = 2000L // 2 秒内重复调用直接跳过
         const val ACTION_REFRESH = "com.ufi_axis_widget.ACTION_REFRESH"
+
+        /** 右下角断连角标的专用 action：子 View 自带 PendingIntent，不与整块点击的连击计数混在一起 */
+        const val ACTION_CONN_BADGE = "com.ufi_axis_widget.ACTION_CONN_BADGE"
+
+        /** 断连刷新超时检查的专用 action：AlarmManager 到点后投递到 provider，把角标翻回断连 */
+        const val ACTION_CONN_TIMEOUT = "com.ufi_axis_widget.ACTION_CONN_TIMEOUT"
+
+        /**
+         * 断连刷新超时闹钟的固定 requestCode。重复排程时用同一个 code + FLAG_UPDATE_CURRENT
+         * 直接覆盖旧 PendingIntent，等价于「取消旧的、按新时刻重排」。
+         */
+        private const val CONN_TIMEOUT_REQUEST_CODE = 0x434F4E4E // "CONN"
 
         /** 点击广播的私有校验串 extra，值取自 [SPUtil.getWidgetTapToken] */
         private const val EXTRA_TAP_TOKEN = "tap_token"
@@ -161,16 +174,90 @@ abstract class BaseWifiWidget(val layoutId: Int) : AppWidgetProvider() {
             )
         }
 
+        /**
+         * 断连角标进入「上膛/刷新中」后，安排在 [SPUtil.getConnTimeoutSeconds] 后做一次超时检查：
+         * 到点还没拿到服务端数据时，onReceive 会把角标翻回「断连」图标。
+         *
+         * 每次进入上膛/刷新中都重排一次：同一个 requestCode + FLAG_UPDATE_CURRENT 会覆盖上一次，
+         * 等价于「取消旧的、按新时刻重新起算」—— 上膛到确认之间的耗时不会吃掉刷新阶段的完整超时。
+         */
+        internal fun scheduleConnTimeoutAlarm(context: Context) {
+            val timeoutSec = SPUtil.getConnTimeoutSeconds(context)
+            if (timeoutSec <= 0) return
+            // 主 4x2 receiver 可能因「隐藏组件名称」被禁用（影子 receiver 接管），硬编码指向
+            // 主类会把闹钟投到 disabled 组件上永远不触发 —— 改投当前启用的那个（主/影子互斥）
+            val spec = WidgetRegistry.byKind(WidgetRegistry.KIND_4X2)
+            val target = if (spec != null) WidgetLabelToggle.activeProviderOf(context, spec)
+                else WifiWidget4x2::class.java
+            try {
+                val intent = Intent(context, target).apply {
+                    action = ACTION_CONN_TIMEOUT
+                    // 与整块点击同一套私有校验串：receiver 是 exported 的，防止外部应用伪造超时广播提前翻回
+                    putExtra(EXTRA_TAP_TOKEN, SPUtil.getWidgetTapToken(context))
+                }
+                val pi = PendingIntent.getBroadcast(
+                    context,
+                    CONN_TIMEOUT_REQUEST_CODE,
+                    intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                val alarm = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+                val triggerAt = System.currentTimeMillis() + timeoutSec * 1000L
+                try {
+                    // 超时是秒级体验，用允许 Doze 穿透的精确闹钟；Android 12+ 未授予
+                    // SCHEDULE_EXACT_ALARM 时会抛 SecurityException，退回非精确闹钟
+                    alarm.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
+                } catch (_: SecurityException) {
+                    alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
+                }
+                appendLog(context, "断连刷新超时已排程：${timeoutSec}s 内未取到数据将翻回断连")
+            } catch (e: Exception) {
+                DebugLogger.w(TAG, "scheduleConnTimeoutAlarm failed: ${e.message}")
+            }
+        }
+
+        /**
+         * 断连角标超时兜底判定：从「上膛」或「刷新中(reconnecting)」开始计时，超过设定时长
+         * 仍未取到服务端数据时翻回「断连」图标。
+         *
+         * - 上膛态（只有 armed、等第二次点击确认）：只清上膛标记，回到「断开」图标；
+         * - 刷新中（armed 已清、reconnecting=true）：把 reconnecting 一并清掉 —— 转圈让位，
+         *   有缓存时角标回「断开」，无缓存的全屏覆盖层也回到错误图标。
+         *
+         * @return true 表示确实发生了超时翻回，调用方应强制重渲染
+         */
+        internal fun expireConnRetryIfTimedOut(context: Context): Boolean {
+            val timeoutSec = SPUtil.getConnTimeoutSeconds(context)
+            if (timeoutSec <= 0) return false
+            val startedAt = SPUtil.getConnRetryStartedAt(context)
+            if (startedAt <= 0L) return false
+            val armed = SPUtil.getConnBadgeArmed(context)
+            val reconnecting = SPUtil.isReconnecting(context)
+            if (!armed && !reconnecting) return false
+            val elapsed = System.currentTimeMillis() - startedAt
+            if (elapsed < timeoutSec * 1000L) return false
+
+            SPUtil.setConnRetryStartedAt(context, 0L)
+            if (reconnecting) SPUtil.setReconnecting(context, false)
+            SPUtil.setConnBadgeArmed(context, false)
+            appendLog(context, "断连刷新超时（${timeoutSec}s 未取到数据），角标翻回断连")
+            return true
+        }
+
         fun renderAllWidgets(context: Context, force: Boolean = false) {
+            // 断连刷新超时兜底：任何一次渲染入口都先查一遍。闹钟被系统延迟/丢弃的极端情况下，
+            // 角标也能随下一次任意渲染翻回断连 —— 翻了说明状态变了，本次必须强制重画，
+            // 否则上面的去重逻辑可能把这次「回断连」的变化吞掉。
+            val forceRender = force || expireConnRetryIfTimedOut(context)
             val now = System.currentTimeMillis()
             // ── 阶段1：synchronized 仅保护去重检查和时间戳更新 ──
             val pendingHash = synchronized(renderLock) {
-                if (now - lastRenderTime < RENDER_DEDUP_MS && !force) {
+                if (now - lastRenderTime < RENDER_DEDUP_MS && !forceRender) {
                     return // 短时间内已渲染过（Worker 和 MainActivity 双重触发去重）
                 }
 
                 val currentHash = computeDataHash(context)
-                if (!force && hasCachedHash && currentHash == lastDataHash) {
+                if (!forceRender && hasCachedHash && currentHash == lastDataHash) {
                     // SP 数据未变，跳过整次渲染（performRender + applyWidgetTheme）
                     // 但通知检测仍需执行（数据未变不代表通知已发送）
                     notifyFromCache(context)
@@ -250,6 +337,10 @@ abstract class BaseWifiWidget(val layoutId: Int) : AppWidgetProvider() {
             variant.renderer.render(context, rv, scope)
             spec.themer.render(context, rv, scope)
             setupClick(context, rv, widgetClass)
+            // 右下角断连角标（若有）单独挂自己的 PendingIntent
+            setupConnBadgeClick(context, rv, widgetClass)
+            // 挂完点击再按当前连接状态决定角标显隐与图标（放最后，保证覆盖角标的着色）
+            renderConnBadge(context, rv)
             return rv
         }
 
@@ -315,7 +406,7 @@ abstract class BaseWifiWidget(val layoutId: Int) : AppWidgetProvider() {
             // 各尺寸独立字体大小
             h = 31 * h + sp.getInt("font_size_2x1", 9)
             h = 31 * h + sp.getInt("font_size_4x1", 9)
-            // Worker 状态（影响 error overlay 显隐）
+            // Worker 状态（影响错误覆盖层与断连角标显隐：有缓存时角标出现，无缓存时全屏占位）
             h = 31 * h + WifiWorker.isWorkerStopped(context).hashCode()
             // 指定 Wi-Fi 守卫状态（暂停/恢复时必须重渲染，否则被哈希去重吞掉）
             h = 31 * h + WifiGuard.isRefreshAllowed(context).hashCode()
@@ -340,6 +431,31 @@ abstract class BaseWifiWidget(val layoutId: Int) : AppWidgetProvider() {
         }
 
         /**
+         * 右下角断连角标的点击。
+         *
+         * 角标是 widget_root 的子 View 且自带 PendingIntent：点中它的手势不会再落到
+         * 整块点击上（也不会参与双击轮播 / 三击切配置档的连击计数），所以必须走
+         * 独立 action [ACTION_CONN_BADGE]，与 [setupClick] 的整块点击互不干扰。
+         */
+        internal fun setupConnBadgeClick(context: Context, rv: RemoteViews, clazz: Class<*>) {
+            val intent = Intent(context, clazz).apply {
+                action = ACTION_CONN_BADGE
+                // 与整块点击同一套私有校验串：receiver 是 exported 的，防止外部应用伪造广播
+                putExtra(EXTRA_TAP_TOKEN, SPUtil.getWidgetTapToken(context))
+            }
+            val pi = PendingIntent.getBroadcast(
+                context,
+                clazz.hashCode() xor ACTION_CONN_BADGE.hashCode(),
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            // 布局中没有 iv_conn_badge（理论上不会：7 套布局都已加上）时静默跳过
+            try { rv.setOnClickPendingIntent(R.id.iv_conn_badge, pi) } catch (_: Exception) {
+                // RemoteViews: 布局中无对应 id 时抛异常，静默吞掉
+            }
+        }
+
+        /**
          * 非常态覆盖层的统一处理：重试中 / 连接失败 / 守卫暂停。
          *
          * 四个尺寸的渲染入口逻辑完全一致，抽在这里避免判定规则改一处漏三处。
@@ -358,21 +474,35 @@ abstract class BaseWifiWidget(val layoutId: Int) : AppWidgetProvider() {
             val decision = WifiGuard.evaluate(context)
             val paused = !decision.allowed
 
-            // ===== 加载覆盖层（仅设备断连且用户刚点击刷新时显示）：提示用户并非功能不生效 =====
+            // ===== 断连但有缓存可看：数据留在原地，断连提示收进右下角角标 =====
+            // 全屏错误/重试覆盖层只留给「从没成功拿到过数据」的形态（首装、刚换配置档）。
+            // 有过一轮数据之后设备再断，缓存里还摆着内容，盖一层全屏错误反而把用户最想看的
+            // 数字遮掉 —— 所以这里直接放行到正常渲染，角标的显隐与图标由 renderConnBadge 统一接管。
+            if (stopped && !paused && SPUtil.hasCachedWidgetData(context)) {
+                return OverlayState(handled = false, pausedReason = "")
+            }
+
+            // ===== 加载覆盖层（无缓存 + 设备断连 + 用户刚点击刷新）：提示用户并非功能不生效 =====
+            // "正在重试..." 用自转 ProgressBar 顶替静态图标：AppWidget 里 ImageView 挂不了动画，
+            // 只有 ProgressBar 的 indeterminate 转圈能在桌面上自驱动（布局里已预置同尺寸的 pb_overlay_loading）
             if (showRetryOverlay && stopped && !paused && SPUtil.isReconnecting(context)) {
                 safeSetVisibility(rv, R.id.widget_content, false)
                 safeSetVisibility(rv, R.id.widget_error_overlay, true)
-                safeSetImageResource(rv, R.id.widget_error_icon, R.drawable.ic_sync)
+                safeSetVisibility(rv, R.id.widget_error_icon, false)
+                safeSetVisibility(rv, R.id.pb_overlay_loading, true)
                 safeSetText(rv, R.id.widget_error_text, "正在重试...")
                 safeSetText(rv, R.id.widget_error_hint, "请稍候")
                 return OverlayState(handled = true, pausedReason = "")
             }
 
-            // ===== 错误状态：隐藏数据区，全屏显示连接失败提示 =====
+            // ===== 错误状态（无缓存）：隐藏数据区，全屏显示连接失败提示 =====
             val showError = stopped && !paused
             safeSetVisibility(rv, R.id.widget_content, !showError)
             safeSetVisibility(rv, R.id.widget_error_overlay, showError)
             if (showError) {
+                // 覆盖层重出时把上一轮"重试中"的转圈收回，图标回到失败态（互斥只在一侧显示）
+                safeSetVisibility(rv, R.id.widget_error_icon, true)
+                safeSetVisibility(rv, R.id.pb_overlay_loading, false)
                 safeSetImageResource(rv, R.id.widget_error_icon, R.drawable.ic_router_off)
                 return OverlayState(handled = true, pausedReason = "")
             }
@@ -392,6 +522,43 @@ abstract class BaseWifiWidget(val layoutId: Int) : AppWidgetProvider() {
          *                     无法区分「按规则暂停」和「应用坏了」
          */
         private class OverlayState(val handled: Boolean, val pausedReason: String)
+
+        /**
+         * 右下角断连角标渲染（[buildRemoteViews] 的收尾步骤，7 套布局统一走这里）。
+         *
+         * 与 [applyStateOverlay] 的判定互为镜像：
+         * - 覆盖层只接管「断连且无缓存」（没内容可保留），此时角标隐藏；
+         * - 有缓存时数据正常展示，断连提示就只剩右下角这枚小圆片。
+         *
+         * 图标三态：断连 = 断开路由器；点过一下角标（上膛，未在刷新）= 由
+         * pb_conn_badge_loading 自转提示「再点一下才触发真实刷新」；真正刷新中
+         * （reconnecting）= 继续转圈。ImageView 在 AppWidget 里挂不上动画，
+         * ProgressBar 的 indeterminate 转圈是唯一能自驱动的加载动效。
+         */
+        private fun renderConnBadge(context: Context, rv: RemoteViews) {
+            val stopped = WifiWorker.isWorkerStopped(context)
+            // 指定 Wi-Fi / 息屏 / 省电守卫拦停不是设备故障，数据是「按规则暂停」，不弹角标
+            val paused = !WifiGuard.evaluate(context).allowed
+            val visible = stopped && !paused && SPUtil.hasCachedWidgetData(context)
+
+            safeSetVisibility(rv, R.id.iv_conn_badge, false)
+            safeSetVisibility(rv, R.id.pb_conn_badge_loading, false)
+            if (!visible) {
+                // 恢复在线/守卫暂停后残留的上膛标记清掉：下次断连从「断开」图标重新开始
+                if (SPUtil.getConnBadgeArmed(context)) SPUtil.setConnBadgeArmed(context, false)
+                return
+            }
+            // 上膛态 / 真正刷新中：都用自转 ProgressBar 顶替静态图标，
+            // 让用户点第一下立刻看到加载反馈，避免静态刷新箭头像“没反应”。
+            if (SPUtil.isReconnecting(context) || SPUtil.getConnBadgeArmed(context)) {
+                safeSetVisibility(rv, R.id.pb_conn_badge_loading, true)
+                return
+            }
+            safeSetVisibility(rv, R.id.iv_conn_badge, true)
+            safeSetImageResource(rv, R.id.iv_conn_badge, R.drawable.ic_router_off)
+            // 底色是半透明深色圆片（bg_conn_badge），图标固定白色：内容区浅色/深色主题都读得清
+            safeSetImageViewTint(rv, R.id.iv_conn_badge, Color.WHITE)
+        }
 
         internal fun performRender(context: Context, rv: RemoteViews, scope: WidgetScope) {
 
@@ -462,7 +629,8 @@ abstract class BaseWifiWidget(val layoutId: Int) : AppWidgetProvider() {
             }
             safeSetText(rv, R.id.tv_signal_dbm, signal)
 
-            // ===== 路由器图标：此处 stopped 已在上层 early return，始终为 ic_router =====
+            // ===== 路由器图标：断连但仍有缓存时数据照常展示（覆盖层只接管无缓存形态），
+            // 头部与在线共用实心图标，断连提示由右下角角标承担，避免同一个断开图标出现两处 =====
             safeSetImageResource(rv, R.id.iv_router, R.drawable.ic_router)
 
             // ===== 第四行：时间戳 =====
@@ -1803,6 +1971,21 @@ abstract class BaseWifiWidget(val layoutId: Int) : AppWidgetProvider() {
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
+
+        // 右下角断连角标是 widget_root 的子 View、自带独立 PendingIntent：
+        // 点它的手势不参与整块点击的连击计数，必须先分流，不能落进 ACTION_REFRESH 的连击逻辑
+        if (intent.action == ACTION_CONN_BADGE) {
+            handleConnBadgeTap(context, intent)
+            return
+        }
+        // 断连刷新超时闹钟到点：还在上膛/重试且已超过设定时长 → 翻回断连图标并重画
+        if (intent.action == ACTION_CONN_TIMEOUT) {
+            if (intent.getStringExtra(EXTRA_TAP_TOKEN) != SPUtil.getWidgetTapToken(context)) return
+            if (expireConnRetryIfTimedOut(context)) {
+                renderAllWidgets(context, force = true)
+            }
+            return
+        }
         if (intent.action != ACTION_REFRESH) return
 
         // provider 的 receiver 必须 exported（否则系统投递不到 APPWIDGET_UPDATE），
@@ -1866,6 +2049,48 @@ abstract class BaseWifiWidget(val layoutId: Int) : AppWidgetProvider() {
         tapHandler.postDelayed(action, SINGLE_TAP_DELAY_MS)
     }
 
+    /**
+     * 右下角断连角标的两段式点击：防误触。
+     *
+     * 断连且还有缓存数据时角标才显示（见 [BaseWifiWidget.renderConnBadge]）：
+     * - 点第一下：角标「上膛」并立即转圈（即时加载反馈，避免静态图标像没反应），
+     *   同时起算超时：到点还没兑现刷新/取到数据就自动翻回「断连」图标；
+     * - 点第二下：兑现刷新，与整块单击走同一条 [triggerWorker] 链路。
+     * 上膛状态是全局的，同形态多实例会一起显示转圈，这与整块点击的
+     * 类型层语义一致（PendingIntent 按 provider 建，广播里区分不了实例）。
+     */
+    private fun handleConnBadgeTap(context: Context, intent: Intent) {
+        // 与 ACTION_REFRESH 同一套私有校验串，防外部应用伪造广播
+        if (intent.getStringExtra(EXTRA_TAP_TOKEN) != SPUtil.getWidgetTapToken(context)) return
+
+        val stopped = WifiWorker.isWorkerStopped(context)
+        val guard = WifiGuard.evaluate(context)
+        // 只有「设备真断连、未被守卫拦停、且还有缓存可看」时角标才有意义：
+        // 守卫暂停本来就在展示过期数据（更新时间行有原因），在线时角标不可见，
+        // 点不到这里的兜底只负责清掉残留的上膛标记
+        if (!stopped || !guard.allowed || !SPUtil.hasCachedWidgetData(context)) {
+            SPUtil.setConnBadgeArmed(context, false)
+            return
+        }
+        // 刷新进行中（角标已是转圈动画）：这一下忽略，避免重复入队
+        if (SPUtil.isReconnecting(context)) return
+
+        if (!SPUtil.getConnBadgeArmed(context)) {
+            // 第一下：上膛 —— 角标立即开始转圈，给用户即时加载反馈；
+            // 同时起算超时：到点还没兑现刷新/取到数据就自动翻回「断连」图标
+            SPUtil.setConnBadgeArmed(context, true)
+            SPUtil.setConnRetryStartedAt(context, System.currentTimeMillis())
+            scheduleConnTimeoutAlarm(context)
+            appendLog(context, "断连角标已上膛，再点一次触发刷新（${SPUtil.getConnTimeoutSeconds(context)}s 无数据自动回断连）")
+            renderAllWidgets(context, force = true)
+        } else {
+            // 第二下：兑现刷新（triggerWorker 内部会置 reconnecting，角标继续转圈）
+            SPUtil.setConnBadgeArmed(context, false)
+            appendLog(context, "断连角标触发刷新")
+            triggerWorker(context)
+        }
+    }
+
     protected fun triggerWorker(context: Context) {
         try {
             // 指定 Wi-Fi 守卫拦停时点击不触发抓取，也不进入 reconnecting，
@@ -1879,6 +2104,10 @@ abstract class BaseWifiWidget(val layoutId: Int) : AppWidgetProvider() {
             }
             // 设置重试状态标记，立即刷新小组件显示加载覆盖层，提示用户刷新已触发
             SPUtil.setReconnecting(context, true)
+            // 刷新计时重新起算并重排超时检查：本次刷新超过设定时长仍未取到数据，
+            // 角标自动翻回「断连」—— 上膛阶段的计时到第二次点击就作废，不吃确认等待的时间
+            SPUtil.setConnRetryStartedAt(context, System.currentTimeMillis())
+            scheduleConnTimeoutAlarm(context)
             renderAllWidgets(context, force = true)
             // 不在此处重置失败状态，否则若后续渲染被触发会显示旧缓存数据后再变回断联。
             // Worker 内部有独立的自恢复逻辑 + 清除 reconnecting 标记。

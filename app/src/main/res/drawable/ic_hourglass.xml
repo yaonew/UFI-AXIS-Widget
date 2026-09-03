@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 沙漏（超时计时）图标：线稿风格与 ic_clock_bolt 保持一致 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- 背景透明 -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M0,0h24v24H0z" />
+    <!-- 上下边框 -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M6,3h12 M6,21h12" />
+    <!-- 上漏斗：顶部两角收拢到颈部 -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M6,3v4.172a2,2 0 0 0,0.586 1.414L12,12l5.414,-5.414A2,2 0 0 0,18 7.172V3" />
+    <!-- 下漏斗：颈部散开到底部两角 -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M18,21v-4.172a2,2 0 0 0,-0.586 -1.414L12,12l-5.414,5.414A2,2 0 0 0,6 16.828V21" />
+</vector>

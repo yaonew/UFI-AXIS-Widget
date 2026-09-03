@@ -118,6 +118,17 @@ object SPUtil {
     fun getCachedDataHash(ctx: Context): Int = getSp(ctx).getInt("sp_cached_data_hash", 0)
 
     /**
+     * 当前配置档是否已成功采集过至少一轮数据。
+     *
+     * 以 [saveData] 写入的缓存哈希是否为 0 作判据（切换配置档时
+     * [clearDeviceRuntimeCache] 会连哈希一起抹掉，所以天然按档隔离）。
+     * 断连渲染拿它决定：有数据可看 → 数据留在原地、只在右下角弹角标；
+     * 从没成功过（首装/刚换档）→ 才允许全屏错误/重试占位。
+     */
+    fun hasCachedWidgetData(ctx: Context): Boolean =
+        getSp(ctx).getInt("sp_cached_data_hash", 0) != 0
+
+    /**
      * 只把「更新时间」推到当下，其余缓存字段一个不动。
      *
      * 供 UFI-AXIS 在每次真正问到设备之后手动打点。为什么需要单独一个入口：
@@ -327,6 +338,40 @@ object SPUtil {
         DebugLogger.d("SPUtil", "setReconnecting=$value")
     }
 
+    /** 断连角标是否已「上膛」（断连时点一下角标：断开图标 → 转圈，再点触发刷新） */
+    fun getConnBadgeArmed(ctx: Context): Boolean =
+        getSp(ctx).getBoolean("widget_conn_badge_armed", false)
+
+    /** 设置断连角标上膛标记 */
+    fun setConnBadgeArmed(ctx: Context, value: Boolean) {
+        getSp(ctx).edit().putBoolean("widget_conn_badge_armed", value).apply()
+        DebugLogger.d("SPUtil", "setConnBadgeArmed=$value")
+    }
+
+    // ==================== 断连角标刷新超时 ====================
+
+    /** 断连角标刷新超时默认值（秒） */
+    const val DEFAULT_CONN_TIMEOUT_SEC = 20
+
+    /**
+     * 断连角标刷新超时（秒）：角标进入「上膛/刷新中」后，超过该时长仍未取到服务端数据，
+     * 自动从「刷新图标/转圈」翻回「断连」图标。<= 0 表示不启用超时。
+     */
+    fun getConnTimeoutSeconds(ctx: Context) = getSp(ctx).getInt("widget_conn_timeout_sec", DEFAULT_CONN_TIMEOUT_SEC)
+
+    /** 设置断连角标刷新超时（秒） */
+    fun setConnTimeoutSeconds(ctx: Context, seconds: Int) {
+        getSp(ctx).edit().putInt("widget_conn_timeout_sec", seconds).apply()
+    }
+
+    /** 断连角标最近一次进入「上膛/刷新中」的时刻（System.currentTimeMillis），0 表示当前不在计时 */
+    fun getConnRetryStartedAt(ctx: Context): Long = getSp(ctx).getLong("widget_conn_retry_started_at", 0L)
+
+    /** 记录断连角标进入「上膛/刷新中」的时刻，超时判定从这里起算 */
+    fun setConnRetryStartedAt(ctx: Context, millis: Long) {
+        getSp(ctx).edit().putLong("widget_conn_retry_started_at", millis).apply()
+    }
+
     /** 原子递增网络失败计数，返回递增后的值 */
     @Synchronized
     fun incrementNetworkFailureCount(ctx: Context): Int {
@@ -361,6 +406,8 @@ object SPUtil {
             .putInt("worker_network_failure_count", 0)
             .putBoolean("worker_stopped_by_failure", false)
             .putString("worker_stop_reason", "")
+            // 设备恢复在线：断连角标的上膛标记一并清掉，下次断连从「断开」图标重新开始
+            .putBoolean("widget_conn_badge_armed", false)
             .apply()
         DebugLogger.i("SPUtil", "resetWorkerFailureState called (prevStopped=$prevStopped)")
     }

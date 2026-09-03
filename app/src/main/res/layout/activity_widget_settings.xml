@@ -134,6 +134,11 @@
             layout="@layout/layout_common_setting_item"
             android:id="@+id/item_widget_interval" />
 
+        <!-- 断连角标刷新超时（弹窗选择秒数） -->
+        <include
+            layout="@layout/layout_common_setting_item"
+            android:id="@+id/item_conn_timeout" />
+
         <!-- 三击小组件循环切换设备配置档（行内开关 + 点击行选参与档位） -->
         <include
             layout="@layout/layout_common_switch_item"

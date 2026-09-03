@@ -287,6 +287,17 @@
             android:src="@drawable/ic_router_off"
             android:scaleType="fitCenter" />
 
+        <!-- 重试中自转的加载圈：与 widget_error_icon 同尺寸同位，applyStateOverlay 里二选一显示 -->
+        <ProgressBar
+            android:id="@+id/pb_overlay_loading"
+            style="@android:style/Widget.ProgressBar.Small.Inverse"
+            android:indeterminate="true"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:indeterminateTint="@android:color/white"
+            android:visibility="gone"
+            android:importantForAccessibility="no" />
+
         <TextView
             android:id="@+id/widget_error_text"
             android:layout_width="wrap_content"
@@ -308,5 +319,40 @@
             android:textColor="#777777"
             android:textSize="9sp" />
     </LinearLayout>
+
+    <!-- ========= 右下角断连角标：断连时保留数据、只在此处提示；点一下变转圈，再点触发刷新 =========
+         三态由 renderConnBadge 切换：
+         - 断连未点     → iv_conn_badge 显示断开图标；
+         - 已上膛       → pb_conn_badge_loading 自转（再点一下才触发真实刷新）；
+         - 刷新进行中   → iv_conn_badge 隐藏、由 pb_conn_badge_loading 继续转圈顶替。
+         用 ProgressBar 而不是 ImageView 转圈：AppWidget 里 ImageView 挂不上动画，
+         系统 ProgressBar 的 indeterminate 转圈是桌面组件中唯一能自驱动运行的加载动效。 -->
+    <ImageView
+        android:id="@+id/iv_conn_badge"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="6dp"
+        android:layout_marginBottom="5dp"
+        android:padding="3dp"
+        android:background="@drawable/bg_conn_badge"
+        android:src="@drawable/ic_router_off"
+        android:scaleType="fitCenter"
+        android:visibility="gone"
+        android:importantForAccessibility="no" />
+
+    <ProgressBar
+        android:id="@+id/pb_conn_badge_loading"
+        style="@android:style/Widget.ProgressBar.Small.Inverse"
+        android:indeterminate="true"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="6dp"
+        android:layout_marginBottom="5dp"
+        android:background="@drawable/bg_conn_badge"
+        android:indeterminateTint="@android:color/white"
+        android:visibility="gone"
+        android:importantForAccessibility="no" />
 
 </FrameLayout>

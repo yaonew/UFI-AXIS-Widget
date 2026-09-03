@@ -56,6 +56,9 @@ class WidgetSettingsActivity : AppCompatActivity() {
 
     private var widgetIntervalMinutes: Int = 15
 
+    /** 断连角标刷新超时（秒），默认值与 SPUtil 保持一致 */
+    private var connTimeoutSeconds: Int = SPUtil.DEFAULT_CONN_TIMEOUT_SEC
+
     // ── renderAllWidgets 防抖机制：停止操作 300ms 后才执行渲染，避免滑块拖动时每帧触发 ──
     private var renderDebounceJob: Job? = null
 
@@ -89,6 +92,7 @@ class WidgetSettingsActivity : AppCompatActivity() {
     private var activeWidgetThemeDialog: Dialog? = null
     private var activeDisplayInfoDialog: Dialog? = null
     private var activeWidgetIntervalDialog: Dialog? = null
+    private var activeConnTimeoutDialog: Dialog? = null
     private var activeBgImageDialog: Dialog? = null
     private var bgDialogContent: LinearLayout? = null
     private var activeBgOpacityDialog: Dialog? = null
@@ -151,6 +155,7 @@ class WidgetSettingsActivity : AppCompatActivity() {
             updateWidgetThemeSubtitle()
             updateDisplayInfoSubtitle()
             updateWidgetIntervalSubtitle()
+            updateConnTimeoutSubtitle()
 
             updateWidgetBgImageSubtitle()
             updateWidgetBgOpacitySubtitle()
@@ -165,6 +170,7 @@ class WidgetSettingsActivity : AppCompatActivity() {
         initWidgetColorThemeItem()
         initDisplayInfoItem()
         initWidgetIntervalItem()
+        initConnTimeoutItem()
         initWidgetTripleTapItem()
 
         initWidgetBgImageItem()
@@ -185,6 +191,7 @@ class WidgetSettingsActivity : AppCompatActivity() {
         updateWidgetColorThemeSubtitle()
         updateDisplayInfoSubtitle()
         updateWidgetIntervalSubtitle()
+        updateConnTimeoutSubtitle()
         updateWidgetBgImageSubtitle()
 
         updateWidgetBgOpacitySubtitle()
@@ -199,6 +206,7 @@ class WidgetSettingsActivity : AppCompatActivity() {
         try { activeWidgetThemeDialog?.dismiss() } catch (_: Exception) {}
         try { activeDisplayInfoDialog?.dismiss() } catch (_: Exception) {}
         try { activeWidgetIntervalDialog?.dismiss() } catch (_: Exception) {}
+        try { activeConnTimeoutDialog?.dismiss() } catch (_: Exception) {}
         try { activeBgImageDialog?.dismiss() } catch (_: Exception) {}
         try { activeBgOpacityDialog?.dismiss() } catch (_: Exception) {}
         try { activeWidgetColorDialog?.dismiss() } catch (_: Exception) {}
@@ -206,6 +214,7 @@ class WidgetSettingsActivity : AppCompatActivity() {
         activeWidgetThemeDialog = null
         activeDisplayInfoDialog = null
         activeWidgetIntervalDialog = null
+        activeConnTimeoutDialog = null
         activeBgImageDialog = null
         activeBgOpacityDialog = null
         activeWidgetColorDialog = null
@@ -1255,6 +1264,153 @@ class WidgetSettingsActivity : AppCompatActivity() {
         CommonDialogHelper.setupDialogWindow(this, dialog)
         activeWidgetIntervalDialog = dialog
         dialog.show()
+    }
+
+    // ==================== 3.2 断连刷新超时（弹窗选择秒数） ====================
+    //
+    // 断连角标进入「上膛/刷新中」后，超过设定时长仍未取到服务端数据时自动翻回
+    // 「断连」图标，避免角标一直停留在刷新图标/转圈上。改动的排程逻辑在
+    // BaseWifiWidget.scheduleConnTimeoutAlarm（本页只负责读配置 + 改动后重排）。
+
+    private fun initConnTimeoutItem() {
+        connTimeoutSeconds = SPUtil.getConnTimeoutSeconds(this)
+
+        try {
+            findInItem<ImageView>(R.id.item_conn_timeout, R.id.common_item_icon)?.setImageResource(R.drawable.ic_hourglass)
+            findInItem<TextView>(R.id.item_conn_timeout, R.id.common_item_title)?.text = "断连刷新超时"
+        } catch (e: Exception) { DebugLogger.w("WidgetSettingsActivity", "initConnTimeoutItem: setting icon/title failed: ${e.message}") }
+        updateConnTimeoutSubtitle()
+
+        findViewById<View>(R.id.item_conn_timeout).setOnClickListener {
+            showConnTimeoutDialog()
+        }
+    }
+
+    private fun updateConnTimeoutSubtitle() {
+        val label = if (connTimeoutSeconds <= 0) "关闭"
+            else "超过 ${connTimeoutSeconds} 秒未取到数据，自动回断连"
+        try {
+            findInItem<TextView>(R.id.item_conn_timeout, R.id.common_item_subtitle)?.text = label
+        } catch (e: Exception) { DebugLogger.w("WidgetSettingsActivity", "updateConnTimeoutSubtitle: setting subtitle failed: ${e.message}") }
+    }
+
+    private fun showConnTimeoutDialog() {
+        activeConnTimeoutDialog?.takeIf { it.isShowing }?.dismiss()
+        activeConnTimeoutDialog = null
+
+        val dialog = CommonDialogHelper.createAnimatedDialog(this)
+        dialog.setContentView(R.layout.layout_common_dialog)
+
+        dialog.findViewById<TextView>(R.id.common_dialog_title).text = "断连刷新超时"
+        dialog.findViewById<ImageView>(R.id.common_dialog_icon).setImageResource(R.drawable.ic_hourglass)
+
+        CommonDialogHelper.applyThemeToDialogRoot(this, dialog)
+
+        val valueLabel = TextView(this).apply {
+            text = "${connTimeoutSeconds} 秒"
+            textSize = 28f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(ThemeColors.textPrimary(this@WidgetSettingsActivity))
+            gravity = android.view.Gravity.CENTER
+        }
+
+        val slider = ThemeSlider(this).apply {
+            minValue = 5f
+            maxValue = 120f
+            stepSize = 1f
+            currentValue = if (connTimeoutSeconds >= 5) connTimeoutSeconds.toFloat().coerceIn(5f, 120f) else 20f
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp2px(44))
+        }
+        ThemedSliderUtil.setupSliderTickMarks(slider, 30f) { "${it.toInt()}秒" }
+
+        // 实时更新数值（拖动时不受抑制）
+        slider.onValueChanging = { value ->
+            valueLabel.text = "${value.toInt()} 秒"
+        }
+
+        val content = dialog.findViewById<LinearLayout>(R.id.common_dialog_content)
+        content.addView(valueLabel)
+        content.addView(slider)
+
+        // 常用值预设（自动跟随滑块高亮）
+        val (presetRow, updatePresets) = CommonDialogHelper.createPresetRow(
+            context = this,
+            values = listOf(10, 20, 30, 60),
+            formatLabel = { "${it}秒" },
+            currentValue = connTimeoutSeconds,
+            onSelect = { slider.currentValue = it.toFloat() }
+        )
+        content.addView(presetRow)
+        slider.onValueChange = { value ->
+            connTimeoutSeconds = value.toInt()
+            valueLabel.text = "${value.toInt()} 秒"
+            updatePresets(value.toInt())
+            SPUtil.setConnTimeoutSeconds(this@WidgetSettingsActivity, value.toInt())
+            updateConnTimeoutSubtitle()
+            rescheduleConnTimeoutIfPending()
+        }
+
+        // 自定义输入面板
+        val customPanel = CommonDialogHelper.createInputPanel(
+            context = this,
+            hint = "输入 1-3600 秒",
+            validate = { text ->
+                val secs = text.toIntOrNull()
+                when {
+                    secs == null -> "请输入有效数字"
+                    secs !in 1..3600 -> "请输入 1-3600 之间的秒数"
+                    else -> null
+                }
+            },
+            onConfirm = { text ->
+                connTimeoutSeconds = text.toInt()
+                SPUtil.setConnTimeoutSeconds(this@WidgetSettingsActivity, text.toInt())
+                updateConnTimeoutSubtitle()
+                rescheduleConnTimeoutIfPending()
+                dialog.dismiss()
+                ToastUtil.showDropToast(this@WidgetSettingsActivity, ToastStyle.SUCCESS, "断连刷新超时已设为 ${text} 秒")
+            }
+        )
+        customPanel.layoutParams = (customPanel.layoutParams as ViewGroup.MarginLayoutParams).also {
+            it.topMargin = dp2px(12)
+        }
+        content.addView(customPanel)
+
+        // 公共弹窗按钮
+        val btnPrimary = dialog.findViewById<com.google.android.material.button.MaterialButton>(R.id.common_dialog_btn_primary)
+        btnPrimary.text = "确定"
+        btnPrimary.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        val btnSecondary = dialog.findViewById<com.google.android.material.button.MaterialButton>(R.id.common_dialog_btn_secondary)
+        btnSecondary.visibility = android.view.View.VISIBLE
+        btnSecondary.text = "自定义"
+        btnSecondary.setOnClickListener {
+            val showing = customPanel.visibility == android.view.View.VISIBLE
+            CommonDialogHelper.animatePanelVisibility(customPanel, !showing) {
+                if (!showing) {
+                    val et = customPanel.findViewWithTag<android.widget.EditText>("custom_input_field")
+                    et?.requestFocus()
+                }
+            }
+        }
+
+        CommonDialogHelper.setupDialogWindow(this, dialog)
+        activeConnTimeoutDialog = dialog
+        dialog.show()
+    }
+
+    /**
+     * 断连角标正处于「上膛/刷新中」时，超时数值一改动就按新值重排超时闹钟：
+     * 旧的排程仍按改动前的时长到点 —— 改长了会提前翻回、改短了会迟迟不翻。
+     * 重排时把计时起点挪到改动时刻，按新时长从零起算。
+     */
+    private fun rescheduleConnTimeoutIfPending() {
+        if (SPUtil.getConnBadgeArmed(this) || SPUtil.isReconnecting(this)) {
+            SPUtil.setConnRetryStartedAt(this, System.currentTimeMillis())
+            BaseWifiWidget.scheduleConnTimeoutAlarm(this)
+        }
     }
 
     // ==================== 3.5 三击切换设备配置档 ====================
